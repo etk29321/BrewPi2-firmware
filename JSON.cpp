@@ -72,6 +72,21 @@
 #endif
 		return tempbuf;
 	}
+	JSONObj *JSONArrayElement::getValueAsObj(){
+		if(obj!=NULL) {
+			return obj;
+		}
+		return NULL;
+	}
+	JSONArray *JSONArrayElement::getValueAsArray(){
+		if(array!=NULL) {
+			return array;
+		}
+		return NULL;
+	}
+	double JSONArrayElement::getValueAsDouble(){
+		return numval;
+	}
 	void JSONArrayElement::setValue(const char *newval){
 		size_t vallen=strlen(newval);
 		if (obj!=NULL) {
@@ -208,10 +223,12 @@
 	JSONArray::JSONArray(){
 		root=NULL;
 		len=0;
+		getpos=0;
 	}
 	JSONArray::JSONArray(char *doc) { //create new JSON array from JSON text
 		root=NULL;
 		len=0;
+		getpos=0;
 		if (doc==NULL || *doc!='[') { //could not parse string
 			return;
 		}
@@ -285,6 +302,20 @@
 		*bufpos='\0'; //terminate string
 		return buf;
 	}
+
+	bool JSONArray::getNextElement(JSONArrayElement **element){
+		if(getpos<len){
+			*element=root[getpos];
+			getpos++;
+			return true;
+		} else {
+			return false;
+		}
+	}
+	void JSONArray::resetPos() {
+		getpos=0;
+	}
+
 	JSONArray::~JSONArray(){
 		for (int i=0;i<len;i++) {
 			delete root[i];
@@ -597,6 +628,19 @@
 		}
 		return 0;
 	}
+
+	JSONArray *JSONElement::getValueAsArray() {
+		if (array!=NULL) {
+			return array;
+		}
+		return NULL;
+	}
+	JSONObj *JSONElement::getValueAsObj() {
+		if (obj!=NULL) {
+			return obj;
+		}
+		return NULL;
+	}
 	void JSONElement::setValue(char *newval){
 		size_t vallen=strlen(newval);
 		if (obj!=NULL) {
@@ -727,10 +771,12 @@
 	JSONObj::JSONObj() {
 		root=NULL;
 		len=0;
+		getpos=0;
 	}
 	JSONObj::JSONObj(char *doc) { //create new JSON object from JSON text
 		root=NULL;
 		len=0;
+		getpos=0;
 		if (doc==NULL || *doc!='{') { //could not parse string
 			return;
 		}
@@ -819,6 +865,21 @@
 		}
 		return NULL; //no such element found
 	}
+
+	bool JSONObj::getNextElement(JSONElement **element){
+		if(getpos<len){
+			*element=root[getpos];
+			getpos++;
+			return true;
+		} else {
+			return false;
+		}
+	}
+	void JSONObj::resetPos() {
+		getpos=0;
+	}
+
+
 	void JSONObj::addElement(JSONElement *newElement) {
 		if (root==NULL) {
 			//bLink->printDebug("Realloc JSON at 0x%x from %d to %d",(int)root,len,len+1);

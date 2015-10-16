@@ -277,10 +277,7 @@ char *BrewLink::processCmd(char *cmd) {
 		delete json;
 		break;
 	case 'c': // list all connections
-		json=connections->jsonify();
-		reply=json->jstringify();
-		printDebug("reply: %s",reply);
-		delete json;
+		reply=cmdConn(cmd);
 		break;
 	case 'l': //status command (LCD command)
 		reply=cmdStatus();
@@ -407,5 +404,50 @@ char *BrewLink::cmdSet(char *cmd){
 		//printDebug("reply: %s",reply);
 	}
 	delete json;
+	return reply;
+}
+
+char *BrewLink::cmdConn(char *cmd) {
+	JSONObj *json;
+	char *reply=NULL;
+	char *jsontxt=cmd;
+	jsontxt++;
+	if(*jsontxt!='\0') {
+	json=new JSONObj(jsontxt);
+	if (json!=NULL) { // then we got some change orders to process
+		JSONElement *jsonel=json->getFirstElement();
+		if (jsonel!=NULL) {
+			JSONArray *jsonarray=jsonel->getValueAsArray();
+			if(jsonarray!=NULL) {
+				JSONArrayElement *arrayel=NULL;
+				while(jsonarray->getNextElement(&arrayel)) {
+					JSONObj *conncmd=arrayel->getValueAsObj();
+					jsonel=conncmd->getFirstElement();
+					if(!strcmp("Remove",jsonel->getName())) {
+						connections->delConnection(jsonel->getValueAsObj());
+					} else {
+						connections->addConnection(jsonel->getValueAsObj());
+					}
+				}
+			}else {
+				reply=(char *)malloc(sizeof(char)*(strlen(cmd)+30));
+		//			           0         1         2         3         4
+		//			           01234567890123456789012345678901234567890
+				sprintf(reply,"Unable to parse command: %s",cmd);
+			}
+		}else {
+			reply=(char *)malloc(sizeof(char)*(strlen(cmd)+30));
+	//			           0         1         2         3         4
+	//			           01234567890123456789012345678901234567890
+			sprintf(reply,"Unable to parse command: %s",cmd);
+		}
+	}
+	delete json;
+	}
+	if(reply==NULL) {
+		json=connections->jsonify();
+		reply=json->jstringify();
+		delete json;
+	}
 	return reply;
 }

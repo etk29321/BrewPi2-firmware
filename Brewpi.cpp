@@ -60,17 +60,17 @@ void setup()
 void loop(){
 	unsigned long time=millis();
 	bLink->receive();
-	//delay(50); //slow things down a bit
+
 	if((time-lastTime)>2000) { //update PIDs once every 2 seconds
-		uint32_t freemem = System.freeMemory();
-		bLink->printDebug("free memory: %d Bytes",freemem);
-		bLink->printDebug("update PIDs");
+		//uint32_t freemem = System.freeMemory();
+		//bLink->printDebug("free memory: %d Bytes",freemem);
+
 		pids->updatePIDs();
-		//delay(2000);
-		bLink->printDebug("update connections");
+
+
 		connections->update(); //update outputs
 		lastTime=time;
-		//delay(2000);
-		bLink->printDebug("looping");
+
+
 	}
 }

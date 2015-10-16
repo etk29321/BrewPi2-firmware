@@ -24,6 +24,9 @@ public:
 	JSONArrayElement(JSONArray *newval);
 	~JSONArrayElement();
 	char *getValue();
+	JSONObj *getValueAsObj();
+	JSONArray *getValueAsArray();
+	double getValueAsDouble();
 	void setValue(const char *newval);
 	void setValue(char *newval);
 	void setValue(JSONObj *newval);
@@ -48,11 +51,14 @@ public:
 	void addElement(JSONObj *newval);
 	void addElement(JSONArray *newval);
 	void addElement(JSONArrayElement *newval);
+	bool getNextElement(JSONArrayElement **element);
+	void resetPos();
 	char *jstringify();
 private:
 	JSONArrayElement **root;
 	int len;
 	char *_nexttoken(char *data);
+	int getpos;
 };
 
 class JSONElement{
@@ -66,6 +72,8 @@ public:
 	~JSONElement();
 	char *getValue();
 	int getValueAsInt();
+	JSONArray *getValueAsArray();
+	JSONObj *getValueAsObj();
 	char *getName();
 	void setValue(char *newval);
 	void setValue(JSONObj *newval);
@@ -88,6 +96,8 @@ public:
 	~JSONObj();
 	JSONElement *getElement(char *name);
 	JSONElement *getFirstElement();
+	bool getNextElement(JSONElement **element);
+	void resetPos();
 	void addElement(JSONElement *newElement);
 	void addElement(const char *elementName,char *newval);
 	void addElement(const char *elementName,double newval);
@@ -98,6 +108,7 @@ private:
 	JSONElement **root;
 	int len;
 	char *_nexttoken(char *data);
+	int getpos;
 
 };
 

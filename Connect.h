@@ -51,7 +51,9 @@ class Connections {
 public:
 	Connections();
 	~Connections();
+	void addConnection(JSONObj *json);
 	void addConnection(Connection *newconn);
+	void delConnection(JSONObj *json); //Device name is the dev->getName() of the underlying device
 	void delConnection(char *name); //Device name is the dev->getName() of the underlying device
 	void update();
 	Connection *getConnection(char *name); //Device name is the dev->getName() of the underlying device

@@ -48,6 +48,12 @@ Connection::~Connection(){
 	if(expression!=NULL) {
 		free(expression);
 	}
+	pid=NULL;
+	inputdev=NULL;
+	dev=NULL;
+	expression=NULL;
+	next=NULL;
+	prev=NULL;
 }
 
 void Connection::update(){
@@ -65,10 +71,10 @@ void Connection::update(){
 	case Custom:
 		//bLink->printDebug("evaling expression %s",expression);
 		input=eval(expression);
-		bLink->printDebug("completed eval of %s=%d",expression,input);
+		//bLink->printDebug("completed eval of %s=%d",expression,input);
 		break;
 	}
-	bLink->printDebug("input=%d prevOutput=%d",input,prevOutput);
+	//bLink->printDebug("input=%d prevOutput=%d",input,prevOutput);
 	if(firstRun) {
 		dev->setOutput(input);
 		prevOutput=input;
@@ -185,7 +191,7 @@ bool Connection::evalToken(char *exp) {
 	case '{':
 		tokendev=deviceManager->getDevice(exp+1);
 		if(tokendev!=NULL) {
-			bLink->printDebug("evalToken: %s value=%s",exp,String(tokendev->getValue(), 2).c_str());
+			//bLink->printDebug("evalToken: %s value=%s",exp,String(tokendev->getValue(), 2).c_str());
 			return tokendev->getValue();
 		}
 	}
@@ -237,7 +243,7 @@ char *Connection::_nexttoken(char *exp) {
 #ifdef XCODE
         printf("Next token=>%s<\n",token);
 #else
-        bLink->printDebug("Next token=>%s<",token);
+        //bLink->printDebug("Next token=>%s<",token);
 #endif
 		return token;
 }
@@ -300,17 +306,96 @@ void Connections::addConnection(Connection *newconn){
 				newconn->next=root;
                 root->prev=newconn;
 				root=newroot;
-            } else {
-                delete newconn;
+            } else { //overwrite any existing connection
+            	delConnection(newconn->getName());
+            	addConnection(newconn);
             }
 		}
 	}
 }
+
+void Connections::addConnection(JSONObj *json){
+	JSONElement *jsonOutDev=json->getElement("OutputDevice");
+	JSONElement *jsonmode=json->getElement("mode");
+	JSONElement *jsonInDev=json->getElement("InputDevice");
+	JSONElement *jsonPID=json->getElement("PID");
+	JSONElement *jsonExp=json->getElement("Expression");
+	Connection *newconn=NULL;
+
+	if(jsonOutDev!=NULL && jsonmode!=NULL) {
+		char *outputDevice=jsonOutDev->getValue();
+		Device *dev=deviceManager->getDevice(outputDevice);
+		if (dev!=NULL) {
+			int mode=jsonmode->getValueAsInt();
+			PID *temppid;
+			Device *indev;
+			char *exp;
+			switch((int)mode){
+			case 0:
+				if(jsonPID!=NULL) {
+					temppid=pids->getPID(jsonPID->getValue());
+					if(temppid!=NULL) {
+						newconn=new Connection(dev,temppid,COOLING);
+					}
+				}
+				break;
+			case 1:
+				if(jsonPID!=NULL) {
+					temppid=pids->getPID(jsonPID->getValue());
+					if(temppid!=NULL) {
+						newconn=new Connection(dev,temppid,HEATING);
+					}
+				}
+				break;
+			case 2:
+				if(jsonInDev!=NULL) {
+					indev=deviceManager->getDevice(jsonInDev->getValue());
+					if (index!=NULL) {
+						newconn=new Connection(dev,indev);
+					}
+				}
+				break;
+			case 3:
+				if(jsonExp!=NULL){
+					exp=jsonExp->getValue();
+					if (exp!=NULL) {
+						newconn=new Connection(dev,exp);
+					}
+				}
+				break;
+			}
+		}
+	}
+	if (newconn!=NULL) {
+		addConnection(newconn);
+	}
+}
+
+void Connections::delConnection(JSONObj *json){ //device name is the dev->getName() of the underlying device
+	JSONElement *jsonOutDev=json->getElement("OutputDevice");
+	if(jsonOutDev!=NULL) {
+		char *outputDevice=jsonOutDev->getValue();
+		if(outputDevice!=NULL) {
+			bLink->printDebug("deleting connection %s",outputDevice);
+			delConnection(outputDevice);
+		}
+	}
+}
+
 void Connections::delConnection(char *name){ //device name is the dev->getName() of the underlying device
 	Connection *conn=getConnection(name);
 	if(conn!=NULL){
-		conn->prev->next=conn->next;
-		conn->next->prev=conn->prev;
+		bLink->printDebug("deleting connection 0x%x prev=0x%x next=0x%x",(int)conn,(int)conn->prev,(int)conn->next);
+		if(conn->prev!=NULL) {
+			conn->prev->next=conn->next;
+		}
+		if(conn->next!=NULL) {
+			conn->next->prev=conn->prev;
+		}
+		bLink->printDebug("removed from list");
+		if(conn==root) {
+			root=conn->next;
+		}
 		delete conn;
 		connCount--;
 	}
