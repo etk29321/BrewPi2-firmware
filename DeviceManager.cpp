@@ -344,7 +344,7 @@ void DeviceManager::addDevice(Device *dev){
 		devCount=1;
 		devices[0]=dev;
 		if (dev->getDeviceHardware()==DEVICE_HARDWARE_ONEWIRE_TEMP) { //if this is a new temp sensor, create a PID
-	                PID *owpid=new PID(dev);
+	                PID *owpid=new PID(dev,5.00,0.25,-1.50,1,1);
 	                pids->addPID(owpid);
 	                JSONObj *json=owpid->jsonify();
 	                char *buf=json->jstringify();
@@ -363,7 +363,7 @@ void DeviceManager::addDevice(Device *dev){
 			devices[devCount]=dev;
 
 			if (dev->getDeviceHardware()==DEVICE_HARDWARE_ONEWIRE_TEMP) { //if this is a new temp sensor, create a PID
-                PID *owpid=new PID(dev);
+                PID *owpid=new PID(dev,5.00,0.25,-1.50,1,1);
                 pids->addPID(owpid);
             }
 			devCount++;

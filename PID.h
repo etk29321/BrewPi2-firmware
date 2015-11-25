@@ -17,10 +17,10 @@ enum PIDState{
 /* BrewPi PID defaults
    Kp	 doubleToTempDiff(5.0),	 +5
    Ki	 doubleToTempDiff(0.25),  +0.25
-   Kd	 doubleToTempDiff(1.5),	-1.5 */
+   Kd	 doubleToTempDiff(1.5),	+1.5 */
 class PID{
 public:
-	PID(class Device *newdev, double P=5, double I=0.25, double D=-1.5, double dBand=0, double PWMScalein=1);
+	PID(class Device *newdev, double P=5, double I=0.25, double D=1.5, double dBand=0, double PWMScalein=1);
 	~PID();
 	void setSetPoint(double temp);
 	void update();
@@ -45,6 +45,10 @@ private:
 	class Device *dev;
 	double PWMScale;
 	PIDState state;
+	unsigned long lastStateChange;
+	unsigned long minStateTime;
+	unsigned long stateTime;
+
 };
 
 class PIDs {

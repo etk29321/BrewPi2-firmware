@@ -237,6 +237,7 @@ void BrewLink::printDebug(const char *format, ...) {
 	va_start(args,format);
 	int sizeneeded=vsnprintf(buf,2048,format,args);
 	Serial.println(buf);
+	syslog.log(String(buf));
 	Serial.flush(); //wait for buffers to flush.  We want to make sure debug gets printed before a possible crash
 	if (sizeneeded>2047){
 		printDebug("Error: Serial Buffer Overflow.  Buffer is %d, String was %d characters",2048,sizeneeded);
@@ -287,6 +288,10 @@ char *BrewLink::processCmd(char *cmd) {
 		break;
 	case 't': // toggle GPIO
 		reply=cmdToggle(cmd);
+		break;
+	case 'x':
+		singleClient.flush();
+		singleClient.stop();
 		break;
 	default:
 		reply=(char *)malloc(sizeof(char)*(strlen(cmd)+20));

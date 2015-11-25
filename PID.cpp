@@ -17,6 +17,8 @@ PID::PID(Device *newdev, double P, double I, double D, double dBand, double PWMS
 	I=0;
 	temp=setPoint;
 	state=IDLE;
+	lastStateChange=0;
+	minStateTime=120000; //2 minutes
 }
 
 PID::~PID() {
@@ -43,15 +45,28 @@ void PID::update(){
     printf("get Temp took %lu milliseconds.\n",millis()-stime);
 #endif
 	double P=setPoint-temp;
-	if (state!=IDLE && ((P>=0 && P<=deadBand) || (P<0 && (-P)<=deadBand))) {
+	unsigned long stateTime=stime-lastStateChange;
+	if (state==COOLING && P>=0 && (stateTime>minStateTime || stateTime<0)) {
 		state=IDLE;
+		lastStateChange=stime;
 		PIDvalue=0;
 		I=0;
-	} else {
+	}
+	if (state==HEATING && P<=0 && (stateTime>minStateTime || stateTime<0)) {
+			state=IDLE;
+			lastStateChange=stime;
+			PIDvalue=0;
+			I=0;
+	}
+	if (state==IDLE && ((P>0 && P>deadBand) || (P<0 && (-P)>deadBand)) && (stateTime>minStateTime || stateTime<0)) {
 		if(P>0){
 			state=HEATING;
+			lastStateChange=stime;
+
 		} else {
 			state=COOLING;
+			lastStateChange=stime;
+
 		}
 	}
 	if(state!=IDLE) {
@@ -104,6 +119,9 @@ JSONObj *PID::jsonify(){
     json->addElement("temp",temp);
 	json->addElement("PID",PIDvalue);
 	json->addElement("state",state);
+	json->addElement("lastStateChange",lastStateChange);
+	json->addElement("minStateTime",minStateTime);
+	json->addElement("stateTime",stateTime);
 	json->addElement("heating",heating());
 	json->addElement("cooling",cooling());
 	json->addElement("deadBand",deadBand);

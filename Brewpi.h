@@ -48,6 +48,7 @@ class OneWireTempSensor;
 class PIDs;
 class Connection;
 class Connections;
+class Syslog;
 
 #ifndef XCODE
 #include "application.h"
@@ -59,6 +60,7 @@ typedef uint8_t DeviceAddress[8];
 #include "PID.h"
 #include "DeviceManager.h"
 #include "Connect.h"
+#include "syslog.h"
 
 void setup(void);
 void loop (void);
@@ -67,5 +69,6 @@ extern class BrewLink *bLink;
 extern class DeviceManager *deviceManager;
 extern class PIDs *pids;
 extern class Connections *connections;
+extern class Syslog syslog;
 
 #endif
