@@ -12,6 +12,23 @@
 **
 ***********************************************************************/
 
+String charToString(char *cstr){
+	if(cstr!=NULL) {
+		char buf[40];
+		char *pos=cstr;
+		int i=0;
+		while (i<38 && pos!=NULL && *pos!='\0') {
+			buf[i]=*pos;
+			pos++;
+			i++;
+		}
+		buf[i]='\0';
+		String str=String(buf);
+	}
+	return String("");
+}
+
+
 
 /***********************************************************************
 **
@@ -22,9 +39,9 @@
 BrewLink::BrewLink(){
 	Serial.begin(9600);
 	wifiserver = new TCPServer(8080);
-	clients=NULL;
+	//clients=NULL;
 	serialBufPos=0;
-	singleClientBufPos=0;
+	//singleClientBufPos=0;
 }
 
 /***********************************************************************
@@ -37,15 +54,15 @@ BrewLink::~BrewLink(){
 	if (wifiserver!=NULL)
 		delete wifiserver;
 	Serial.end();
-	BrewLinkClient *currclient=clients;
-	BrewLinkClient *prevclient;
-	while (currclient!=NULL) { // clean up any still attached client structs
-		currclient->client->flush();
-		currclient->client->stop();  //gracefully disconnect
-		prevclient=currclient;
-		currclient=currclient->next;
-		free(prevclient);
-	}
+	//BrewLinkClient *currclient=clients;
+	//BrewLinkClient *prevclient;
+	//while (currclient!=NULL) { // clean up any still attached client structs
+	//	currclient->client->flush();
+	//	currclient->client->stop();  //gracefully disconnect
+	//	prevclient=currclient;
+	//	currclient=currclient->next;
+	//	free(prevclient);
+	//}
 }
 
 /***********************************************************************
@@ -58,6 +75,23 @@ void BrewLink::begin(){
 	wifiserver->begin();
 }
 
+void BrewLink::stop(){
+	wifiserver->stop();
+}
+
+
+template<typename C>
+bool isDisconnected(C& connection)
+{
+	unsigned int deltaTime = millis() - connection.lastHeard;
+	if (deltaTime>TCPTIMEOUT) {
+		IPAddress clientIP = connection.client.remoteIP();
+		bLink->printDebug("Disconnecting client %d.%d.%d.%d. Exceeded timeout of %d seconds",clientIP[0],clientIP[1],clientIP[2],clientIP[3], TCPTIMEOUT);
+		connection.client.flush();
+		connection.client.stop();  //gracefully disconnect
+	}
+	return !connection.client.connected();
+}
 
 /***********************************************************************
 **
@@ -115,114 +149,69 @@ void BrewLink::receive(){
 	*/
 
 
-	if (singleClient.connected()) {
+	// check for new clients
+	struct BrewLinkClient bpiclient;
+	bpiclient.client = wifiserver->available();
+	if (bpiclient.client.connected()) {
+		IPAddress clientIP = bpiclient.client.remoteIP();
+		bpiclient.bufPos=0;
+		bpiclient.lastHeard=millis();
+		clients.push_back(bpiclient);
+		printDebug("New client connected from %d.%d.%d.%d.  %d total clients connected.",clientIP[0],clientIP[1],clientIP[2],clientIP[3],clients.size());
+	}
+	// remove disconnected clients
+    clients.erase(std::remove_if(clients.begin(), clients.end(), isDisconnected<struct BrewLinkClient>), clients.end());
+
+
+	// process client streams
+	for(std::vector<BrewLinkClient>::size_type i = 0; i != clients.size(); i++) {
+		receiveTCPClient(&clients[i]);
+	}
+
+
+}
+
+void BrewLink::receiveTCPClient(BrewLinkClient *client){
+	TCPClient *singleClient=&(client->client);
+	char *singleClientCmdBuf=client->cmdBuf;
+	unsigned int singleClientBufPos=client->bufPos;
+	char *replybuf=NULL;
+
+
+	if (singleClient->connected()) {
 		int bytesRead=0;
-		while (singleClient.available()) {
-			char inByte = singleClient.read();
+		while (singleClient->available()) {
+			char inByte = singleClient->read();
 			//printDebug("read %c",inByte);
+			IPAddress clientIP = singleClient->remoteIP();
+			printDebug("Processing char %c from client %d.%d.%d.%d",inByte,clientIP[0],clientIP[1],clientIP[2],clientIP[3]);
 			if (inByte=='\n'|| inByte=='\r') {  //Commands terminate with a newline
 				singleClientCmdBuf[singleClientBufPos]='\0'; //terminate C string
 				replybuf=processCmd(singleClientCmdBuf);
 				if (replybuf!=NULL) {
-					singleClient.println(replybuf);
+					singleClient->println(replybuf);
 					free(replybuf);
 					replybuf=NULL;
 				}
 				singleClientBufPos=0;
 				while (inByte=='\n'|| inByte=='\r') { //flush the buffer to the start of the next command
-					inByte = singleClient.read();
+					inByte = singleClient->read();
 				}
 			} else {
 				singleClientCmdBuf[singleClientBufPos]=inByte;
 				singleClientBufPos++;
 			}
 			bytesRead++;
-			lastHeard=millis();
 		}
-		if (bytesRead==0) { // handle timeouts if we recieved nothing from this client
-			unsigned int time = millis();
-			if (lastHeard>time) {  //millis overflowed so we'll give the client a pass this time
-				lastHeard=millis();
-			} else {
-				unsigned int deltaTime = time - lastHeard;
-				if (deltaTime>TCPTIMEOUT) {
-					printDebug("Disconnecting client. Exceeded timeout of %d milliseconds", TCPTIMEOUT);
-					singleClient.flush();
-					singleClient.stop();
-				}
-			}
-		}
-	}  else {
-		//check for new connections
-		//printDebug("No client connected. Checking for new clients.");
-		singleClient=wifiserver->available();  //TCPServer.available always returns an object, so we have to grab it and check if its a valid connection
-		if (singleClient.connected()) {  //reset timeout on new connection
-			lastHeard=millis();
-		}
-	}
-
-
-
-
-
-	//printDebug("recieve completed");
-
-}
-
-/***********************************************************************
-**
-** Function: BrewLink::checkClient
-** Purpose: processes a single client, reading all avaiable data and
-** enforcing timeouts.
-**
-***********************************************************************/
-void BrewLink::checkClient(BrewLinkClient *client) {
-	if (client->client->connected()) {
-		int bytesRead=0;
-		while (client->client->available()) {
-			char inByte = client->client->read();
-			printDebug("Recieved TCP byte %c from client %x",inByte, (int)client->client);
-			client->client->write(inByte); //echo back input to output for testing
-			//printDebug("Wrote TCP byte %c to client %x",inByte, (int)client->client);
-			bytesRead++;
+		if (bytesRead>0) {
 			client->lastHeard=millis();
 		}
-		if (bytesRead==0) { // handle timeouts if we recieved nothing from this client
-			unsigned int time = millis();
-			if (client->lastHeard>time) {  //millis overflowed so we'll give the client a pass this time
-				client->lastHeard=millis();
-			} else {
-				unsigned int deltaTime = time - client->lastHeard;
-				if (deltaTime>TCPTIMEOUT) {
-					printDebug("Disconnecting client %x. Exceeded timeout of %d seconds",(int)client->client, TCPTIMEOUT);
-					disconnect(client);
-				}
-			}
-		}
-	} else {
-		disconnect(client);
 	}
-	//printDebug("checkClient %x completed",(int)client);
 
+	client->bufPos=singleClientBufPos;
 }
 
-/***********************************************************************
-**
-** Function: BrewLink::disconnect
-** Purpose: disconnects a TCPClient and deletes its BrewLinkClient
-** struct.
-**
-***********************************************************************/
-void BrewLink::disconnect(BrewLinkClient *client) {
-	client->client->flush();
-	client->client->stop();  //gracefully disconnect
-	if (client->prev->next!=NULL) {
-		client->prev->next=client->next; // remove this client from the list
-	} else { //we're the head of the list
-		clients=client->next;
-	}
-	free(client);
-}
+
 
 /***********************************************************************
 **
@@ -237,7 +226,7 @@ void BrewLink::printDebug(const char *format, ...) {
 	va_start(args,format);
 	int sizeneeded=vsnprintf(buf,2048,format,args);
 	Serial.println(buf);
-	syslog.log(String(buf));
+	syslog.log(buf);
 	Serial.flush(); //wait for buffers to flush.  We want to make sure debug gets printed before a possible crash
 	if (sizeneeded>2047){
 		printDebug("Error: Serial Buffer Overflow.  Buffer is %d, String was %d characters",2048,sizeneeded);
@@ -273,9 +262,12 @@ char *BrewLink::processCmd(char *cmd) {
 		break;
 	case 'p': // list all PIDs
 		json=pids->jsonify();
-		reply=json->jstringify();
-		printDebug("reply: %s",reply);
-		delete json;
+		if (json!=NULL) {
+			reply=json->jstringify();
+			delete json;
+		} else {
+			reply=NULL;
+		}
 		break;
 	case 'c': // list all connections
 		reply=cmdConn(cmd);
@@ -290,8 +282,8 @@ char *BrewLink::processCmd(char *cmd) {
 		reply=cmdToggle(cmd);
 		break;
 	case 'x':
-		singleClient.flush();
-		singleClient.stop();
+		//singleClient.flush();
+		//singleClient.stop();
 		break;
 	default:
 		reply=(char *)malloc(sizeof(char)*(strlen(cmd)+20));
@@ -316,9 +308,19 @@ char *BrewLink::cmdDeviceSearch(){
 
 char *BrewLink::cmdStatus(){
 	JSONObj *json=deviceManager->status();
-	char *reply=json->jstringify();
-	free(json);
-	return reply;
+	if (json!=NULL) {
+		char *reply=json->jstringify();
+		delete json;
+		if (reply!=NULL) {
+			printDebug("reply: %s",reply);
+		} else {
+			printDebug("cmdStatus reply returned NULL!!!");
+		}
+		return reply;
+	} else {
+		printDebug("cmdStatus JSON returned NULL!!!");
+		return NULL;
+	}
 }
 
 char *BrewLink::cmdToggle(char *cmd){

@@ -53,6 +53,8 @@ public:
 	virtual ~Device();
 	void setName(char *n);
 	char *getName();
+	void setStrName(String str);
+	String getStrName();
 	virtual double getValue()=0;
 	virtual void setOutput(int)=0;
 	DeviceType getDeviceType();
@@ -61,6 +63,7 @@ protected:
 	DeviceType devType;
 	DeviceHardware devHardware;
 	char *name; //human readable name for this device
+	String strName;
 };
 
 
@@ -71,6 +74,7 @@ public:
 		CorF=F; //default to Farenheit
         address=NULL;
         name=NULL;
+        strName=String("NULL");
 	}; //OneWire Device
 	void init(DallasTemperature *owbus, uint8_t *address); //OneWire Device
 	~OneWireTempSensor();
@@ -92,6 +96,7 @@ public:
 		bus=NULL;
         address=NULL;
         name=NULL;
+        strName=String("NULL");
         pio=UNSET;
 	}; //OneWire 2-channel GPIO Device
 	void init(OneWire *owbus, uint8_t *addr, OneWireGPIOPIO pionum); //OneWire 2-channel GPIO Device
@@ -118,6 +123,7 @@ public:
 		gpioMode=OUTPUT; //defaults to output
 		pin=-1;
         name=NULL;
+        strName=String("NULL");
 	}; //hardware GPIO pin
 	void init(int pinnum); //hardware GPIO pin
 	~HardwareGPIO();

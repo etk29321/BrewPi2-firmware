@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "testing.h"
+
 #ifndef XCODE
 #include <application.h> //bring in String
 #endif
@@ -14,6 +15,8 @@ class JSONArray;
 class JSONArrayElement;
 class JSONObj;
 class JSONElement;
+
+#include "debugMalloc.h"
 
 class JSONArrayElement{
 public:

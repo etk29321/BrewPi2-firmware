@@ -36,8 +36,16 @@ char *PID::getName(){
 	return NULL;
 }
 
+String PID::getStrName(){
+	return dev->getStrName();
+}
+
 void PID::update(){
 	unsigned long stime=millis();
+	if (dev==NULL) {
+		bLink->printDebug("ERROR: PID::update called with NULL dev");
+		return;
+	}
 	temp=dev->getValue();
 #ifndef XCODE
     //bLink->printDebug("get Temp took %lu milliseconds.",millis()-stime);
@@ -48,25 +56,51 @@ void PID::update(){
 	unsigned long stateTime=stime-lastStateChange;
 	if (state==COOLING && P>=0 && (stateTime>minStateTime || stateTime<0)) {
 		state=IDLE;
+		//String strName=getStrName();
+		//String msg=String("PID" + strName+ " changed to IDLE.");
+		//syslog.log(msg);
+		char msgbuf[246];
+        sprintf(msgbuf,"PID %s changed to IDLE",getName());
+        syslog.log(msgbuf);
 		lastStateChange=stime;
 		PIDvalue=0;
 		I=0;
-	}
-	if (state==HEATING && P<=0 && (stateTime>minStateTime || stateTime<0)) {
+	} else {
+		if (state==HEATING && P<=0 && (stateTime>minStateTime || stateTime<0)) {
 			state=IDLE;
+			//String strName=getStrName();
+			//String msg=String("PID" + strName+ " changed to IDLE.");
+			//syslog.log(msg);
+			char msgbuf[246];
+	        sprintf(msgbuf,"PID %s changed to IDLE",getName());
+	        syslog.log(msgbuf);
 			lastStateChange=stime;
 			PIDvalue=0;
 			I=0;
-	}
-	if (state==IDLE && ((P>0 && P>deadBand) || (P<0 && (-P)>deadBand)) && (stateTime>minStateTime || stateTime<0)) {
-		if(P>0){
-			state=HEATING;
-			lastStateChange=stime;
-
 		} else {
-			state=COOLING;
-			lastStateChange=stime;
+			if (state==IDLE && ((P>0 && P>deadBand) || (P<0 && (-P)>deadBand)) && (stateTime>minStateTime || stateTime<0)) {
+				if(P>0){
+					state=HEATING;
+					//String strName=getStrName();
+					//String msg=String("PID" + strName+ " changed to HEATING.");
+					//syslog.log(msg);
+					char msgbuf[246];
+			        sprintf(msgbuf,"PID %s changed to HEATING",getName());
+			        syslog.log(msgbuf);
+					lastStateChange=stime;
 
+				} else {
+					state=COOLING;
+					//String strName=getStrName();
+					//String msg=String("PID" + strName+ " changed to COOLING.");
+					//syslog.log(msg);
+					char msgbuf[246];
+			        sprintf(msgbuf,"PID %s changed to COOLING",getName());
+			        syslog.log(msgbuf);
+					lastStateChange=stime;
+
+				}
+			}
 		}
 	}
 	if(state!=IDLE) {
@@ -170,7 +204,7 @@ void PIDs::addPID(PID *p){
 }
 
 void PIDs::updatePIDs(){
-	unsigned long stime=millis();
+	//unsigned long stime=millis();
 	for(int i=0;i<pidCount;i++) {
 		if (root[i]!=NULL) {
 			root[i]->update();
@@ -180,7 +214,7 @@ void PIDs::updatePIDs(){
 #ifndef XCODE
 	//bLink->printDebug("updatePIDs took %lu milliseconds.",millis()-stime);
 #else
-    printf("updatePIDs took %lu milliseconds.\n",millis()-stime);
+    //printf("updatePIDs took %lu milliseconds.\n",millis()-stime);
 #endif
 }
 

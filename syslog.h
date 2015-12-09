@@ -42,8 +42,8 @@ const String  SYSLOG_APPNAME= String("BrewPi");
 class Syslog{
 public:
 	Syslog(String hostname, IPAddress syslogServer, int syslogPort);
-	String timestamp();
 	void log(String msg);
+	void log(char *msg);
 	void log(String msgtype, String msg);
 private:
 	String hname;

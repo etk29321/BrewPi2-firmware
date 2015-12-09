@@ -53,7 +53,7 @@ class Syslog;
 #ifndef XCODE
 #include "application.h"
 typedef uint8_t DeviceAddress[8];
-
+#include "debugMalloc.h"
 #include "BrewLink.h"
 #endif
 

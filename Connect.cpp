@@ -57,19 +57,36 @@ Connection::~Connection(){
 }
 
 void Connection::update(){
+
 	bool input=false;
 	switch(mode) {
 	case PIDCooling:
+		if (pid==NULL) {
+			bLink->printDebug("ERROR: Connection::update PIDCooling called with NULL pid");
+			return;
+		}
 		input=pid->cooling();
 		break;
 	case PIDHeating:
+		if (pid==NULL) {
+			bLink->printDebug("ERROR: Connection::update PIDHeating called with NULL pid");
+			return;
+		}
 		input=pid->heating();
 		break;
 	case DevMode:
+		if (dev==NULL) {
+			bLink->printDebug("ERROR: Connection::update Dev called with NULL dev");
+			return;
+		}
 		input=dev->getValue();
 		break;
 	case Custom:
 		//bLink->printDebug("evaling expression %s",expression);
+		if (expression==NULL) {
+			bLink->printDebug("ERROR: Connection::update Custom called with NULL expression");
+			return;
+		}
 		input=eval(expression);
 		//bLink->printDebug("completed eval of %s=%d",expression,input);
 		break;
@@ -158,7 +175,7 @@ bool Connection::eval(char *exp) {
 			// Invalid token
 			//bLink->printDebug("Invalid pos %c |%s| exp=%s",*pos,pos,exp);
 		}
-		free(prevToken);
+		//if (prevToken!=NULL) {free(prevToken);}
 	}
 	if(token!=NULL) {
 		return evalToken(token);

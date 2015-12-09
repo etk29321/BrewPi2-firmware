@@ -1,6 +1,11 @@
 #include "syslog.h"
 
 
+void Syslog::log(char *msg){
+	String *strmsg=new String(msg);
+	log(SYSLOG_DEBUG,*strmsg);
+	delete strmsg;
+}
 
 
 void Syslog::log(String msg){
@@ -9,11 +14,12 @@ void Syslog::log(String msg){
 
 void Syslog::log(String msgtype, String msg){
 
-	String packet = String(msgtype + SP+ SYSLOG_VER + SP +NILVAL + SP + hname + SP + \
+	String *packet = new String(msgtype + SP+ SYSLOG_VER + SP +NILVAL + SP + hname + SP + \
 			               SYSLOG_APPNAME + SP + NILVAL + SP + NILVAL + SP + NILVAL + SP + msg);
 
-	packet.toCharArray(buf,480);
-	int pktsize=packet.length();
+	packet->toCharArray(buf,480);
+	int pktsize=packet->length();
+	delete packet;
 	if (pktsize>480) {
 		pktsize=480;
 	}
@@ -22,10 +28,6 @@ void Syslog::log(String msgtype, String msg){
 	udp.stop();
 }
 
-String Syslog::timestamp(){
-	String timestr= String("2015-01-01T00:00:00.000Z");
-	return timestr;
-}
 
 Syslog::Syslog(String hostname, IPAddress syslogServer, int syslogPort){
 	hname=hostname;

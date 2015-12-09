@@ -2,7 +2,7 @@
 #define PID_H
 #include <stdlib.h>
 #include <math.h>
-#include "DeviceManager.h"
+#include "Brewpi.h"
 #include "JSON.h"
 
 #pragma once
@@ -27,6 +27,7 @@ public:
 	bool heating();
 	bool cooling();
 	char *getName();
+	String getStrName();
 	uint8_t PWMDutyCycle();
 	JSONObj *jsonify();
 private:

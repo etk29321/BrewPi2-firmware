@@ -1,4 +1,6 @@
 #include "Brewpi.h"
+SYSTEM_THREAD(ENABLED);
+//SYSTEM_MODE(SEMI_AUTOMATIC);
 
 //SerialDebugOutput debugOutput(38400, ALL_LEVEL); // use a faster baudrate and log only warnings or more severe
 
@@ -13,21 +15,32 @@ IPAddress syslogServer(192,168,8,20);
 Syslog syslog(hostname,syslogServer,514);
 
 unsigned long lastTime;
+unsigned long lastReportTime;
 unsigned long lastConnectAttempt;
-
+bool wifiFlap;
 
 void setup()
 {
 	//we want manual wifi and no particle cloud
-	//SYSTEM_MODE(MANUAL);
-	//SYSTEM_MODE(SEMI_AUTOMATIC);
+	//WiFi.off();
 	SYSTEM_THREAD(ENABLED);
+	SYSTEM_MODE(MANUAL);
     //load WIFI
 	delay(1000); // wait a sec to get serial term up and ready
-
+	wifiFlap=false;
 	lastConnectAttempt=millis();
+	lastReportTime=millis();
     bLink=new BrewLink();
-	bLink->begin(); //start wifi server
+	//bLink->begin(); //start wifi server
+    IPAddress myAddress(192,168,8,147);
+    IPAddress netmask(255,255,255,0);
+    IPAddress gateway(192,168,8,1);
+    IPAddress dns(192,168,8,1);
+    WiFi.setStaticIP(myAddress, netmask, gateway, dns);
+
+      // now let's use the configured IP
+    WiFi.useStaticIP();
+
     WiFi.on();
  	WiFi.connect();
  	while (millis()-lastConnectAttempt < 30000 && !WiFi.ready()) {
@@ -44,21 +57,26 @@ void setup()
 	//  Add some connections
     OneWireTempSensor *temp=(OneWireTempSensor *)deviceManager->getDevice("28fae0a006000001");
 	if(temp!=NULL) {temp->setName("Fermenter1");}
+	if(temp!=NULL) {temp->setStrName(String("Fermenter1"));}
     temp=(OneWireTempSensor *)deviceManager->getDevice("28e146a106000082");
     if(temp!=NULL) {temp->setName("Fermenter2");}
+	if(temp!=NULL) {temp->setStrName(String("Fermenter2"));}
 	temp=(OneWireTempSensor *)deviceManager->getDevice("287ea2a20600005a");
 	if(temp!=NULL) {temp->setName("Glycol");}
+	if(temp!=NULL) {temp->setStrName(String("Glycol"));}
     PID *temppid=pids->getPID("Fermenter1");
     OneWireGPIO *owgpio=(OneWireGPIO *)deviceManager->getDevice("3af51321000000cb0");
     if (owgpio!=NULL && temppid!=NULL) { //if this didnt work, get device or get pid failed
         temppid->setSetPoint(68);
     	owgpio->setName("GlycolFermenter1");
+    	owgpio->setStrName(String("GlycolFermenter1"));
         Connection *conn=new Connection((Device *)owgpio,temppid,COOLING);
         connections->addConnection(conn);
     }
     owgpio=(OneWireGPIO *)deviceManager->getDevice("3af51321000000cb1");
     if (owgpio!=NULL && temppid!=NULL) { //if this didnt work, get device or get pid failed
     	  owgpio->setName("HeatingFermenter1");
+      	owgpio->setStrName(String("HeatingFermenter1"));
           Connection *conn=new Connection((Device *)owgpio,temppid,HEATING);
           connections->addConnection(conn);
     }
@@ -68,12 +86,14 @@ void setup()
      if (owgpio!=NULL && temppid!=NULL) { //if this didnt work, get device or get pid failed
     	 temppid->setSetPoint(68);
     	 owgpio->setName("GlycolFermenter2");
+     	owgpio->setStrName(String("GlycolFermenter2"));
          Connection *conn=new Connection((Device *)owgpio,temppid,COOLING);
          connections->addConnection(conn);
      }
      owgpio=(OneWireGPIO *)deviceManager->getDevice("3a1b20210000003b1");
      if (owgpio!=NULL && temppid!=NULL) { //if this didnt work, get device or get pid failed
      	   owgpio->setName("HeatingFermenter2");
+       	owgpio->setStrName(String("HeatingFermenter2"));
            Connection *conn=new Connection((Device *)owgpio,temppid,HEATING);
            connections->addConnection(conn);
      }
@@ -81,6 +101,7 @@ void setup()
     owgpio=(OneWireGPIO *)deviceManager->getDevice("3a2d0e210000003e0");
     if (owgpio!=NULL) { //if this didnt work, get device or get pid failed
         owgpio->setName("GlycolPump");
+    	owgpio->setStrName(String("GlycolPump"));
     	Connection *conn=new Connection((Device *)owgpio,"[CFermenter1 | [CFermenter2");
     	connections->addConnection(conn);
     }
@@ -91,6 +112,7 @@ void setup()
     if (owgpio!=NULL && temppid!=NULL) { //if this didnt work, get device or get pid failed
         temppid->setSetPoint(44);
         owgpio->setName("GlycolChiller");
+    	owgpio->setStrName(String("GlycolChiller"));
     	Connection *conn=new Connection((Device *)owgpio,temppid,COOLING);
     	connections->addConnection(conn);
     }
@@ -116,6 +138,33 @@ void loop(){
 
 
 	}
+	if((time-lastReportTime)>60000) { //report debug info once every 60 seconds
+		uint32_t freemem = System.freeMemory();
+		bLink->printDebug("free memory: %d Bytes",freemem);
+		/*if (freemem<20000) { // something is causing a memory leak that once started crashes us.  restart proactively for now.
+			System.reset();
+		}*/
+		char *reply=bLink->cmdStatus();
+		if (reply !=NULL){
+			free(reply);
+		}
+		lastReportTime=time;
+		//bLink->begin(); //restart wifi server
+
+	}
+
+	// WiFi restart event detection.  It'd be nice if photon threw an interrupt or event for this.....
+	if (!WiFi.ready()) {
+		wifiFlap=true;
+	}
+	if (wifiFlap && WiFi.ready()) {
+		wifiFlap=false;
+		bLink->stop();
+		bLink->begin(); //restart wifi server
+		bLink->printDebug("BrewPi just recovered from WiFi flap");
+
+	}
+
 }
 
 

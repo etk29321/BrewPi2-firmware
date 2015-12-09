@@ -31,6 +31,10 @@ OneWireTempSensor::~OneWireTempSensor(){
 	sensor=NULL;
 }
 double OneWireTempSensor::getValue(){
+	if (address==NULL || sensor==NULL) {
+		bLink->printDebug("ERROR: OneWireTempSensor::getValue called with NULL address or sensor");
+		return -195;
+	}
 	sensor->requestTemperaturesByAddress(address); //tell sensor to read temp
 	//delay(750); //wait for converstion
 	switch (CorF) {
@@ -50,7 +54,7 @@ uint8_t *OneWireTempSensor::getAddress(){
 }
 
 bool OneWireTempSensor::matchAddress(uint8_t *addr){
-	if(addr!=NULL) {
+	if(addr!=NULL && address!=NULL) {
 		for(int i=0;i<8;i++) {
 			if(addr[i]!=address[i]) {
 				return false;
@@ -124,6 +128,10 @@ OneWireGPIO::~OneWireGPIO(){
     bus=NULL;
 }
 double OneWireGPIO::getValue(){
+	if (owSwitch==NULL) {
+		bLink->printDebug("ERROR: OneWireGPIO::getValue called with NULL owSwitch");
+		return -1;
+	}
 	int val=owSwitch->channelReadAll();
 	switch (pio){
 		case PIOA:
@@ -148,11 +156,20 @@ double OneWireGPIO::getValue(){
 	return -1;
 }
 void OneWireGPIO::setOutput(int value){  //OneWire GPIO's are inverted
+	if (owSwitch==NULL) {
+		bLink->printDebug("ERROR: OneWireGPIO::setOutput called with NULL owSwitch");
+		return;
+	}
     if(pio==PIOA || pio==PIOB) {  // only run if the PIO number is valid
 	if (value==HIGH) {
 #ifndef XCODE
 		//bLink->printDebug("Setting GPIO output of 0x%02x%02x%02x%02x%02x%02x%02x%02x",address[0],address[1],address[2],address[3],address[4],address[5],address[6],address[7]);
 #endif
+		//String nameStr=charToString(getName());
+		//syslog.log("Setting GPIO output " + nameStr + " to LOW");
+		char msgbuf[246];
+        sprintf(msgbuf,"Setting GPIO output %s to LOW",getName());
+        syslog.log(msgbuf);
 		owSwitch->channelWrite(pio,LOW);
 #ifndef XCODE
        // bLink->printDebug("GPIO output set to %d",value);
@@ -161,6 +178,11 @@ void OneWireGPIO::setOutput(int value){  //OneWire GPIO's are inverted
 #ifndef XCODE
         //bLink->printDebug("Setting GPIO output of 0x%02x%02x%02x%02x%02x%02x%02x%02x",address[0],address[1],address[2],address[3],address[4],address[5],address[6],address[7]);
 #endif
+		//String nameStr=charToString(getName());
+		//syslog.log("Setting GPIO output " + nameStr + " to HIGH");
+		char msgbuf[246];
+        sprintf(msgbuf,"Setting GPIO output %s to HIGH",getName());
+        syslog.log(msgbuf);
         owSwitch->channelWrite(pio,HIGH);
 #ifndef XCODE
        // bLink->printDebug("GPIO output set to %d",value);
@@ -180,12 +202,14 @@ uint8_t *OneWireGPIO::getAddress(){
 }
 
 bool OneWireGPIO::matchAddress(uint8_t *addr){
-	if(addr!=NULL) {
+	if(addr!=NULL && address!=NULL) {
 		for(int i=0;i<8;i++) {
 			if(addr[i]!=address[i]) {
 				return false;
 			}
 		}
+	} else {
+		return false;
 	}
 	return true;
 }
@@ -321,6 +345,14 @@ char *Device::getName() {
 	return name;
 }
 
+void Device::setStrName(String str) {
+	strName=str;
+}
+
+String Device::getStrName(){
+	return strName;
+}
+
 DeviceHardware Device::getDeviceHardware() {
 	return devHardware;
 }
@@ -344,7 +376,7 @@ void DeviceManager::addDevice(Device *dev){
 		devCount=1;
 		devices[0]=dev;
 		if (dev->getDeviceHardware()==DEVICE_HARDWARE_ONEWIRE_TEMP) { //if this is a new temp sensor, create a PID
-	                PID *owpid=new PID(dev,5.00,0.25,-1.50,1,1);
+	                PID *owpid=new PID(dev,5.00,0.25,1.50,0.5,1);
 	                pids->addPID(owpid);
 	                JSONObj *json=owpid->jsonify();
 	                char *buf=json->jstringify();
@@ -363,7 +395,7 @@ void DeviceManager::addDevice(Device *dev){
 			devices[devCount]=dev;
 
 			if (dev->getDeviceHardware()==DEVICE_HARDWARE_ONEWIRE_TEMP) { //if this is a new temp sensor, create a PID
-                PID *owpid=new PID(dev,5.00,0.25,-1.50,1,1);
+                PID *owpid=new PID(dev,5.00,0.25,1.50,1,1);
                 pids->addPID(owpid);
             }
 			devCount++;
@@ -421,7 +453,7 @@ bool DeviceManager::devExists(Device *dev) {
 Device *DeviceManager::getDevice(char *name){
 	if (devices!=NULL && name!=NULL) {
 		for (int i=0;i<devCount;i++) {
-			if (!strcmp(name,devices[i]->getName())) {
+			if ((devices[i]->getName() != NULL) && (!strcmp(name,devices[i]->getName()))) {
 				return devices[i];
 			}
 		}
@@ -507,7 +539,7 @@ JSONObj *DeviceManager::status(){
 	JSONObj *json=new JSONObj();
 
 	for (int i=0;i<devCount;i++) {
-        if (devices[i]!=NULL) {
+        if (devices[i]!=NULL && devices[i]->getName()!=NULL) {
             json->addElement(devices[i]->getName(),devices[i]->getValue());
         } else {
             json->addElement("NULL_DEVICE",(double)0);
