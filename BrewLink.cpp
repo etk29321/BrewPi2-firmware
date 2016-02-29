@@ -383,6 +383,15 @@ char *BrewLink::cmdSet(char *cmd){
 			//delay(1000);
 			if (temppid!=NULL) {
 				temppid->setSetPoint(strtod(jsonel->getValue(),NULL));
+				if (!strcmp(jsonel->getName(),"Fermenter1")) {
+					EEPROM.write(0,(uint8_t)strtod(jsonel->getValue(),NULL));
+				}
+				if (!strcmp(jsonel->getName(),"Fermenter2")) {
+					EEPROM.write(1,(uint8_t)strtod(jsonel->getValue(),NULL));
+				}
+				if (!strcmp(jsonel->getName(),"Glycol")) {
+					EEPROM.write(2,(uint8_t)strtod(jsonel->getValue(),NULL));
+				}
 				//printDebug("setSetpoint");
 				//delay(1000);
 				reply=(char *)malloc(sizeof(char)*(15+strlen(jsonel->getName())+strlen(jsonel->getValue())));

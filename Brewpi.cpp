@@ -4,6 +4,9 @@ SYSTEM_THREAD(ENABLED);
 
 //SerialDebugOutput debugOutput(38400, ALL_LEVEL); // use a faster baudrate and log only warnings or more severe
 
+#define FERM1SET 50
+#define FERM2SET 50
+#define GLYCOLSET 44
 
 BrewLink *bLink;
 DeviceManager *deviceManager;
@@ -54,6 +57,22 @@ void setup()
     char * reply=deviceManager->deviceSearch();  //autodiscover any attached devices
     free(reply);
 
+    // get settings
+    uint8_t ferm1set;
+    uint8_t ferm2set;
+    uint8_t glycolset;
+    ferm1set=EEPROM.read(0);
+    ferm2set=EEPROM.read(1);
+    glycolset=EEPROM.read(2);
+    if (ferm1set==0) {
+    	ferm1set=FERM1SET;
+    }
+    if (ferm2set==0) {
+    	ferm2set=FERM2SET;
+    }
+    if (glycolset==0) {
+    	glycolset=GLYCOLSET;
+    }
 	//  Add some connections
     OneWireTempSensor *temp=(OneWireTempSensor *)deviceManager->getDevice("28fae0a006000001");
 	if(temp!=NULL) {temp->setName("Fermenter1");}
@@ -67,7 +86,7 @@ void setup()
     PID *temppid=pids->getPID("Fermenter1");
     OneWireGPIO *owgpio=(OneWireGPIO *)deviceManager->getDevice("3af51321000000cb0");
     if (owgpio!=NULL && temppid!=NULL) { //if this didnt work, get device or get pid failed
-        temppid->setSetPoint(68);
+        temppid->setSetPoint((double)ferm1set);
     	owgpio->setName("GlycolFermenter1");
     	owgpio->setStrName(String("GlycolFermenter1"));
         Connection *conn=new Connection((Device *)owgpio,temppid,COOLING);
@@ -84,7 +103,7 @@ void setup()
     owgpio=(OneWireGPIO *)deviceManager->getDevice("3a1b20210000003b0");
     temppid=pids->getPID("Fermenter2");
      if (owgpio!=NULL && temppid!=NULL) { //if this didnt work, get device or get pid failed
-    	 temppid->setSetPoint(68);
+    	 temppid->setSetPoint((double)ferm2set);
     	 owgpio->setName("GlycolFermenter2");
      	owgpio->setStrName(String("GlycolFermenter2"));
          Connection *conn=new Connection((Device *)owgpio,temppid,COOLING);
@@ -110,7 +129,7 @@ void setup()
     owgpio=(OneWireGPIO *)deviceManager->getDevice("3a2d0e210000003e1");
     temppid=pids->getPID("Glycol");
     if (owgpio!=NULL && temppid!=NULL) { //if this didnt work, get device or get pid failed
-        temppid->setSetPoint(44);
+        temppid->setSetPoint((double)glycolset);
         owgpio->setName("GlycolChiller");
     	owgpio->setStrName(String("GlycolChiller"));
     	Connection *conn=new Connection((Device *)owgpio,temppid,COOLING);
