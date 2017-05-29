@@ -57,6 +57,8 @@ public:
 	void delConnection(char *name); //Device name is the dev->getName() of the underlying device
 	void update();
 	Connection *getConnection(char *name); //Device name is the dev->getName() of the underlying device
+	Connection *getConnection(int connum); //get connection by index
+	int getNumConns();
 	JSONObj *jsonify();
 private:
 	Connection *root;

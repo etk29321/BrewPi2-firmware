@@ -313,7 +313,8 @@ JSONObj *HardwareGPIO::jsonify(){
  * Device
  *
  *****************************************************************************/
-Device::Device(DeviceHardware dH){
+Device::Device(uint8_t DevID, DeviceHardware dH){
+	DeviceID=DevID;
 	devHardware=dH;
 	switch(dH) {  //set devType based on devHardware
 	case DEVICE_HARDWARE_ONEWIRE_TEMP:
@@ -535,6 +536,47 @@ JSONObj *DeviceManager::jsonify(){
 	return json;
 }
 
+DEVSTORObj *DeviceManager::storeify(){
+	DEVSTORObj *store=new DEVSTORObj(devCount);
+	store->devCount=devCount;
+	for (int i=0;i<devCount;i++) {
+        deventity *child=store->devs[i];
+
+        if (devices[i]!=NULL) {
+        	child->DeviceID=i;
+        	int namelen=strlen(devices[i]->getName());
+        	if (namelen>16) {
+        		namelen=16;
+        	}
+        	memcpy(child->Name,devices[i]->getName(),namelen); //copy name, up to 16 chars
+        	child->Name[namelen]='\0'; //ensure string is null terminated
+        	memcpy(child->address,devices[i]->getAddress(),8); //copy one-wire address
+			child->CorF=1; //temp format single bit
+			child->DeviceType=devices[i]->getDeviceType; // enum, 2 bits
+			child->DeviceHardware=devices[i]->getDeviceHardware(); // enum, 2 bits
+			switch(devices[i]->getDeviceHardware()) {
+            	case DEVICE_HARDWARE_PIN:
+            	case DEVICE_HARDWARE_ONEWIRE_2413:
+        			child->pinpio=devices[i]->getPin(); // gpio 1wire pio or hw pin, enum, 2 bits
+        			child->gpioMode=devices[i]->getGPIOMode();, //all gpio's, enum, 2 bits
+            		break;
+			}
+        } else {
+           	child->DeviceID=i;
+            	memcpy(child->Name,"UNKNOWN",7); //copy name, up to 16 chars
+            	child->Name[7]='\0';
+            	memcpy(child->address,"00000000",8); //copy one-wire address
+    			child->CorF=1; //temp format single bit
+    			child->DeviceType=0; // enum, 2 bits
+    			child->DeviceHardware=0; // enum, 2 bits
+            	child->pinpio=0; // gpio 1wire pio or hw pin, enum, 2 bits
+            	child->gpioMode=0;, //all gpio's, enum, 2 bits
+    			}
+        }
+	}
+	return store;
+}
+
 JSONObj *DeviceManager::status(){
 	JSONObj *json=new JSONObj();
 
@@ -562,6 +604,7 @@ char *DeviceManager::deviceSearch() {
 	char *retbuf;
 	oneWireBus->reset_search(); //ensure we start at the beginning
 	uint8_t address[8]; //addresses come in 8-byte arrays
+	int i=0;
 	while (oneWireBus->search(address)) {
 		switch (address[0]) {
 		case DS18B20MODEL:
@@ -569,7 +612,7 @@ char *DeviceManager::deviceSearch() {
 		case DS1825MODEL:
 			bLink->printDebug("Found OneWire Temp Sensor");
 
-			temp=new OneWireTempSensor();
+			temp=new OneWireTempSensor(i);
 			temp->init(sensor,address);
 			//temp->setName("Temp");
 			//json=temp->jsonify();
@@ -580,7 +623,7 @@ char *DeviceManager::deviceSearch() {
 			addDevice(temp);
 			break;
 		case DS2413_FAMILY_ID:
-			owgpio=new OneWireGPIO();
+			owgpio=new OneWireGPIO(i);
 			owgpio->init(oneWireBus,address,PIOA);
 			//owgpio->setName("OneWire PIOA");
 
@@ -591,7 +634,7 @@ char *DeviceManager::deviceSearch() {
 			//free(retbuf);
 
 			addDevice(owgpio);
-			owgpio=new OneWireGPIO();
+			owgpio=new OneWireGPIO(i);
 			owgpio->init(oneWireBus,address,PIOB);
 			//owgpio->setName("OneWire PIOB");
 
@@ -604,30 +647,31 @@ char *DeviceManager::deviceSearch() {
 			addDevice(owgpio);
 			break;
 		}
+		i++;
 	}
 
 	bLink->printDebug("Adding hardware GPIO");
 delay(1000);
 	// Hardware GPIOs.  These are predefined for Photon
-	hwgpio=new HardwareGPIO();
+	hwgpio=new HardwareGPIO(i);
 	hwgpio->init(actuatorPin0);
 	bLink->printDebug("added PIN %d",hwgpio->getPin());
 	//hwgpio->setName("actuatorPin0");
 	addDevice(hwgpio);
 
-	hwgpio=new HardwareGPIO();
+	hwgpio=new HardwareGPIO(i);
 	hwgpio->init(actuatorPin1);
 	bLink->printDebug("added PIN %d",hwgpio->getPin());
 	//hwgpio->setName("actuatorPin1");
 	addDevice(hwgpio);
 
-	hwgpio=new HardwareGPIO();
+	hwgpio=new HardwareGPIO(i);
 	hwgpio->init(actuatorPin2);
 	bLink->printDebug("added PIN %d",hwgpio->getPin());
 	//hwgpio->setName("actuatorPin2");
 	addDevice(hwgpio);
 
-	hwgpio=new HardwareGPIO();
+	hwgpio=new HardwareGPIO(i);
 	hwgpio->init(actuatorPin3);
 	bLink->printDebug("added PIN %d",hwgpio->getPin());
 	//hwgpio->setName("actuatorPin3");

@@ -442,6 +442,21 @@ Connection *Connections::getConnection(char *name){ //device name is the dev->ge
 	return NULL; //not found
 }
 
+Connection *Connections::getConnection(int connum){
+	Connection *pos=root;
+	int i=0;
+	while(pos!=NULL && i<connum) {
+        pos=pos->next;
+	}
+	return pos;
+}
+
+int Connections::getNumConns(){
+	return connCount;
+}
+
+
+
 JSONObj *Connections::jsonify(){
 	JSONObj *json=new JSONObj();
 	JSONArray *jsonarray=new JSONArray();

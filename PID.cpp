@@ -164,6 +164,19 @@ JSONObj *PID::jsonify(){
 	return json;
 }
 
+void PID::storeify(pidentity *pident){
+	if pident!=NULL{
+		pident->DeviceID=dev->DeviceID; //deventity name
+		pident->p=Kp;
+		pident->i=Ki;
+		pident->d=Kd;
+		pident->setPoint=setPoint;
+		pident->minStateTimeSecs=minStateTime; // in seconds
+		pident->deadBand=deadBand;
+		pident->PWMScale=PWMScale;
+	}
+}
+
 
 /******************************************************************************
  *
@@ -239,6 +252,18 @@ JSONObj *PIDs::jsonify(){
 	}
 	json->addElement("PIDs",jsonarray);
 	return json;
+}
+
+PIDSTORObj *PIDS::storeify(){
+	PIDSTORObj *store=new PIDSTORObj(pidCount);
+	store->pidCount=pidCount;
+	for (int i=0;i<pidCount;i++) {
+        deventity *child=store->pids[i];
+        if (root[i]!=NULL) {
+        	root[i]->storeify(child);
+        }
+	}
+	return store;
 }
 
 

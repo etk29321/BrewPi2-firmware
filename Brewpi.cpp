@@ -77,12 +77,15 @@ void setup()
     OneWireTempSensor *temp=(OneWireTempSensor *)deviceManager->getDevice("28fae0a006000001");
 	if(temp!=NULL) {temp->setName("Fermenter1");}
 	if(temp!=NULL) {temp->setStrName(String("Fermenter1"));}
+
     temp=(OneWireTempSensor *)deviceManager->getDevice("28e146a106000082");
-    if(temp!=NULL) {temp->setName("Fermenter2");}
-	if(temp!=NULL) {temp->setStrName(String("Fermenter2"));}
-	temp=(OneWireTempSensor *)deviceManager->getDevice("287ea2a20600005a");
-	if(temp!=NULL) {temp->setName("Glycol");}
+    if(temp!=NULL) {temp->setName("Glycol");}
 	if(temp!=NULL) {temp->setStrName(String("Glycol"));}
+
+	temp=(OneWireTempSensor *)deviceManager->getDevice("287ea2a20600005a");
+	if(temp!=NULL) {temp->setName("Fermenter2");}
+	if(temp!=NULL) {temp->setStrName(String("Fermenter2"));}
+
     PID *temppid=pids->getPID("Fermenter1");
     OneWireGPIO *owgpio=(OneWireGPIO *)deviceManager->getDevice("3af51321000000cb0");
     if (owgpio!=NULL && temppid!=NULL) { //if this didnt work, get device or get pid failed

@@ -4,6 +4,7 @@
 #include <math.h>
 #include "Brewpi.h"
 #include "JSON.h"
+#include "Storage.h"
 
 #pragma once
 #ifndef PIDenum
@@ -30,6 +31,7 @@ public:
 	String getStrName();
 	uint8_t PWMDutyCycle();
 	JSONObj *jsonify();
+	void storeify(pidentity *pident);
 private:
 	double Kp;
 	double Ki;
@@ -60,6 +62,7 @@ public:
 	void updatePIDs();
 	PID *getPID(char *name); //PID name is the dev->getName() of the underlying device
 	JSONObj *jsonify();
+	PIDSTORObj *storeify();
 private:
 	PID **root;
 	int pidCount;

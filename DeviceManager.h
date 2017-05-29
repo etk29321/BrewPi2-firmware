@@ -12,6 +12,7 @@
 #include "modules/OneWire/DallasTemperature.h"
 //#include "TemperatureFormats.h"
 #include "JSON.h"
+#include "Storage.h"
 
 #pragma once
 
@@ -49,7 +50,7 @@ enum DeviceHardware {
 
 class Device {
 public:
-	Device(DeviceHardware dH);
+	Device(uint8_t DevID, DeviceHardware dH);
 	virtual ~Device();
 	void setName(char *n);
 	char *getName();
@@ -59,6 +60,7 @@ public:
 	virtual void setOutput(int)=0;
 	DeviceType getDeviceType();
 	DeviceHardware getDeviceHardware();
+	uint8_t DeviceID;
 protected:
 	DeviceType devType;
 	DeviceHardware devHardware;
@@ -69,7 +71,7 @@ protected:
 
 class OneWireTempSensor: public Device {
 public:
-	OneWireTempSensor(DeviceHardware dH=DEVICE_HARDWARE_ONEWIRE_TEMP): Device(DEVICE_HARDWARE_ONEWIRE_TEMP){
+	OneWireTempSensor(uint8_t DevID, DeviceHardware dH=DEVICE_HARDWARE_ONEWIRE_TEMP): Device(DEVICE_HARDWARE_ONEWIRE_TEMP){
 		sensor=NULL;
 		CorF=F; //default to Farenheit
         address=NULL;
@@ -91,7 +93,7 @@ protected:
 
 class OneWireGPIO: public Device {
 public:
-	OneWireGPIO(DeviceHardware dH=DEVICE_HARDWARE_ONEWIRE_2413): Device(DEVICE_HARDWARE_ONEWIRE_2413){
+	OneWireGPIO(uint8_t DevID, DeviceHardware dH=DEVICE_HARDWARE_ONEWIRE_2413): Device(DEVICE_HARDWARE_ONEWIRE_2413){
 		gpioMode=OUTPUT; //defaults to output
 		bus=NULL;
         address=NULL;
@@ -119,7 +121,7 @@ protected:
 
 class HardwareGPIO: public Device {
 public:
-	HardwareGPIO(DeviceHardware dH=DEVICE_HARDWARE_PIN): Device(DEVICE_HARDWARE_PIN){
+	HardwareGPIO(uint8_t DevID, DeviceHardware dH=DEVICE_HARDWARE_PIN): Device(DEVICE_HARDWARE_PIN){
 		gpioMode=OUTPUT; //defaults to output
 		pin=-1;
         name=NULL;
@@ -154,6 +156,7 @@ public:
 	JSONObj *jsonify();
 	JSONObj *status();
 	bool devExists(Device *dev);
+	DEVSTORObj *storeify();
 
 private:
 	Device **devices;
