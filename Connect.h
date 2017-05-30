@@ -33,6 +33,11 @@ public:
 	JSONObj *jsonify();
 	Connection *next;
 	Connection *prev;
+	class Device *getOutDev();
+	class Device *getInDev();
+	class PID *getInPID();
+	char *getExp();
+	PIDState getPIDState();
 private:
 	bool eval(char *exp);
 	bool evalToken(char *exp);

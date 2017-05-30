@@ -18,6 +18,8 @@ struct fstable {
 	uint8_t connCount
 }
 
+typedef struct fstable
+
 struct deventity {
 	uint8_t DeviceID,
 	char Name[16],
@@ -29,14 +31,14 @@ struct deventity {
 	uint8_t gpioMode, //all gpio's, enum, 2 bits
 }; //29 bytes per dev (26min)  338 total  - 3 per io board    g, f1, f2  = 348
 
-typdef struct deventity;
+typedef struct deventity;
 
 class DEVSTORObj {
 public:
 	DEVSTORObj();
 	~DEVSTORObj();
 	int devCount;
-	deventity *devs;
+	deventity **devs;
 };
 
 struct pidentity {
@@ -50,33 +52,34 @@ struct pidentity {
     uint8_t PWMScale,
 }; //8 bytes per pid 24 total - 3 PIDs
 
-typedev struct pidentity;
+typedef struct pidentity;
 
 class PIDSTORObj {
 public:
 	PIDSTORObj();
 	~PIDSTORObj();
 	int pidCount;
-	pidentity *pids;
+	pidentity **pids;
 };
 
 
 struct connentity {
 	uint8_t outdevID,
-	unit8_t indevID
-	unit8_t PIDdevID,
+	unit8_t indevID,
+	unit8_t inPIDdevID,
 	uint8_t Pstate,
-	char exp //address of expression string
+	uint8_t exp, //address of expression string
+	uint8_t expLen //length of the exp string
 }; //5 bytes per connection 30 total
 
-typedev struct connentity;
+typedef struct connentity;
 
 class CONNSTORObj {
 public:
 	CONNSTORObj();
 	~CONNSTORObj();
 	int connCount;
-	connentity *conns;
+	connentity **conns;
 };
 
 class Storage {
@@ -85,9 +88,11 @@ public:
 	~Storage();
 	void read();
 	void write();
+	int writeString(char *str, int pos);
 private:
 	size_t length;
 	int pos;
+	int strPos;
 };
 
 /*

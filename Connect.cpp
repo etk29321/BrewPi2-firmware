@@ -272,6 +272,28 @@ char *Connection::getName() {
 	return NULL;
 }
 
+
+class Device *getOutDev(){
+	return dev;
+}
+class Device *getInDev(){
+	return inputdev;
+}
+class PID *getInPID(){
+	return pid;
+}
+char *getExp(){
+	return expression;
+}
+PIDState getPIDState(){
+	if (mode==PIDHeating) {
+		return HEATING;
+	} else {
+		return COOLING;
+	}
+}
+
+
 JSONObj *Connection::jsonify(){
 	JSONObj *json=new JSONObj();
 	json->addElement("OutputDevice",dev->getName());
