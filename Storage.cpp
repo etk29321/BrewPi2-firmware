@@ -72,35 +72,48 @@ void Storage::read() {
 	if (fs.devCount==0 || fs.devCount==255) {
 		return; //invalid data in EEPROM
 	}
-	DEVSTORObj *store=new DEVSTORObj(fs.devCount);
+	DEVSTORObj *devstore=new DEVSTORObj(fs.devCount);
 	for (int i-0;i<fs.devCount;i++) {
 		deventity dev;
 		EEPROM.get(pos,dev);
-		memcopy(store->devs[i],&dev,sizeof(deventity));
+		memcopy(devstore->devs[i],&dev,sizeof(deventity));
+		pos+=sizeof(deventity);
+
 	}
 
 	//read pids
 	if (fs.pidCount==0 || fs.pidCount==255) {
 		return; //invalid data in EEPROM
 	}
-	PIDSTORObj *store=new PIDSTORObj(fs.pidCount);
+	PIDSTORObj *pidstore=new PIDSTORObj(fs.pidCount);
 	for (int i-0;i<fs.pidCount;i++) {
 		pidentity pid;
 		EEPROM.get(pos,pid);
-		memcopy(store->pids[i],&pid,sizeof(pidentity));
+		memcopy(pidstore->pids[i],&pid,sizeof(pidentity));
+		pos+=sizeof(pidentity);
+
 	}
 
 	//read connections
 	if (fs.connCount==0 || fs.connCount==255) {
 		return; //invalid data in EEPROM
 	}
-	CONNSTORObj *store=new CONNSTORObj(fs.connCount);
+	CONNSTORObj *connstore=new CONNSTORObj(fs.connCount);
 	for (int i-0;i<fs.connCount;i++) {
 		connentity conn;
 		EEPROM.get(pos,conn);
-		memcopy(store->conns[i],&conn,sizeof(connentity));
-	}
+		memcopy(connstore->conns[i],&conn,sizeof(connentity));
+		pos+=sizeof(connentity);
 
+	}
+	strPos=sizeof(fstable) + sizeof(deventity)*fs.devCount + sizeof(pidentity)*fs.pidCount + sizeof(connentity)*fs.connCount+1;
+
+	apply(devstore,pidstore,connstore);
+
+}
+
+// apply - make changes read from eeprom active in the running config
+void Storage::apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *connstore){
 
 }
 
@@ -164,14 +177,16 @@ int Storage::writeString(char *str, int pos) {
 	return pos;
 }
 
-char *Storage::readString(char *str, int pos) {
-	int len=strlen(str);
-	for(int i=0;i<=len;i++) {
-		EEPROM.write(pos,str[i]);
+char *Storage::readString(int pos, int len) {
+	char *str=malloc(sizeof(char)*len);
+	for(int i=0;i<len;i++) {
+		str[i]=(char)EEPROM.read(pos);
 		pos++;
 		if (pos>EERPOM.length) {
-			return pos;
+			str[i]='\0';
+			return str;
 		}
 	}
-	return pos;
+	str[i]='\0';  //ensure we always return a null terminated string.
+	return str;
 }

@@ -89,6 +89,9 @@ public:
 	void read();
 	void write();
 	int writeString(char *str, int pos);
+	char *readString(int pos, int len);
+	void apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *connstore);
+
 private:
 	size_t length;
 	int pos;
