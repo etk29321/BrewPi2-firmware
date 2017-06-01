@@ -12,6 +12,7 @@ BrewLink *bLink;
 DeviceManager *deviceManager;
 PIDs *pids;
 Connections *connections;
+Storage *storage;
 
 String hostname=String("brewpi.bakersapex.com");
 IPAddress syslogServer(192,168,8,20);
@@ -54,6 +55,7 @@ void setup()
  	pids=new PIDs();
     connections=new Connections();
     deviceManager=new DeviceManager();
+    storage=new Storage();
     char * reply=deviceManager->deviceSearch();  //autodiscover any attached devices
     free(reply);
 

@@ -29,6 +29,27 @@ void PID::setSetPoint(double newtemp) {
 	setPoint=newtemp;
 }
 
+
+void setP(double newP){
+	P=newP;
+}
+void setI(double newI){
+	I=newI;
+}
+void setD(double newD){
+	D=newD;
+}
+void setMinStateTime(unsigned long newMinStateTime){
+	minStateTime=newMinStateTime;
+}
+void setDeadBand(double newBand){
+	deadBand=newBand;
+}
+void setPWMScale(double newScale){
+	PWMScale=newScale;
+}
+
+
 char *PID::getName(){
 	if(dev!=NULL) {
 		return dev->getName();

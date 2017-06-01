@@ -49,6 +49,7 @@ class PIDs;
 class Connection;
 class Connections;
 class Syslog;
+class Storage;
 
 #ifndef XCODE
 #include "application.h"
@@ -61,6 +62,7 @@ typedef uint8_t DeviceAddress[8];
 #include "DeviceManager.h"
 #include "Connect.h"
 #include "syslog.h"
+#include "Storage.h"
 
 void setup(void);
 void loop (void);
@@ -70,6 +72,7 @@ extern class DeviceManager *deviceManager;
 extern class PIDs *pids;
 extern class Connections *connections;
 extern class Syslog syslog;
+extern class Storage *storage;
 
 
 

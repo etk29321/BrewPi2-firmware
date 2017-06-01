@@ -282,6 +282,11 @@ class Device *getInDev(){
 class PID *getInPID(){
 	return pid;
 }
+ConnMode getMode(){
+	return mode;
+}
+
+
 char *getExp(){
 	return expression;
 }

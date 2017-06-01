@@ -257,17 +257,11 @@ char *BrewLink::processCmd(char *cmd) {
 //		               IP:255.255.255.255 MAC: ff:ff:ff:ff:ff:ff
 		sprintf(reply,"IP:%d.%d.%d.%d MAC: %0x:%0x:%0x:%0x:%0x:%0x",localIP[0],localIP[1],localIP[2],localIP[3],mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
 		break;
-	case 'd':  //perform device search
+	case 'd':  //perform device search or update devices
 		reply=cmdDeviceSearch();
 		break;
-	case 'p': // list all PIDs
-		json=pids->jsonify();
-		if (json!=NULL) {
-			reply=json->jstringify();
-			delete json;
-		} else {
-			reply=NULL;
-		}
+	case 'p': // list all PIDs or update PIDs
+		reply=cmdPIDs(cmd);
 		break;
 	case 'c': // list all connections
 		reply=cmdConn(cmd);
@@ -464,6 +458,64 @@ char *BrewLink::cmdConn(char *cmd) {
 		json=connections->jsonify();
 		reply=json->jstringify();
 		delete json;
+	}
+	return reply;
+}
+
+
+char *BrewLink::cmdPIDs(char *cmd) {
+	JSONObj *json;
+	char *reply=NULL;
+	char *jsontxt=cmd;
+	jsontxt++;
+	if(*jsontxt!='\0') {
+	json=new JSONObj(jsontxt);
+	if (json!=NULL) { // then we got some change orders to process
+		JSONElement *jsonel=json->getFirstElement();
+		if (jsonel!=NULL) {
+			JSONArray *jsonarray=jsonel->getValueAsArray();
+			if(jsonarray!=NULL) {
+				JSONArrayElement *arrayel=NULL;
+				while(jsonarray->getNextElement(&arrayel)) {
+					JSONObj *conncmd=arrayel->getValueAsObj();
+					jsonel=conncmd->getFirstElement();
+					PID *pid=pids->getPID(jsonel->getName());
+					//"Ferm1":{"Kp":5.00,"Ki":0.25,"Kd":1.50,"setPoint":100.00,"minStateTime":120,"deadBand":0.5,"PWMScale":1.00},
+					if(pid!=NULL) {
+						JSONObj * pidupdate=jsonel->getValueAsObj();
+						if (pidupdate!=NULL) {
+							JSONElement *jsonKp=json->getElement("Kp");
+							if (jsonKp!=NULL) {
+								pid=>setP(jsonKp->getValue());
+							}
+							JSONElement *jsonKi=json->getElement("Ki");
+							if (jsonKi!=NULL) {
+								pid=>setI(jsonKi->getValue());
+							}
+						}
+					}
+				}
+			}else {
+				reply=(char *)malloc(sizeof(char)*(strlen(cmd)+30));
+		//			           0         1         2         3         4
+		//			           01234567890123456789012345678901234567890
+				sprintf(reply,"Unable to parse command: %s",cmd);
+			}
+		}else {
+			reply=(char *)malloc(sizeof(char)*(strlen(cmd)+30));
+	//			           0         1         2         3         4
+	//			           01234567890123456789012345678901234567890
+			sprintf(reply,"Unable to parse command: %s",cmd);
+		}
+	}
+	delete json;
+	}
+	if(reply==NULL) {
+		json=pids->jsonify();
+		if (json!=NULL) {
+			reply=json->jstringify();
+			delete json;
+		}
 	}
 	return reply;
 }

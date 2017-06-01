@@ -20,12 +20,13 @@ struct fstable {
 
 typedef struct fstable
 
+
+
 struct deventity {
 	uint8_t DeviceID,
-	char Name[16],
+	char Name[20],
 	uint8_t address[8], // 1wire address, 8 bits
 	uint8_t CorF, //temp format single bit
-	uint8_t DeviceType, // enum, 2 bits
 	uint8_t DeviceHardware, // enum, 2 bits
 	uint8_t pinpio // gpio 1wire pio or hw pin, enum, 2 bits
 	uint8_t gpioMode, //all gpio's, enum, 2 bits
@@ -65,6 +66,7 @@ public:
 
 struct connentity {
 	uint8_t outdevID,
+	uint8_t mode,
 	unit8_t indevID,
 	unit8_t inPIDdevID,
 	uint8_t Pstate,

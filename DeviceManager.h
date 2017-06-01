@@ -82,6 +82,7 @@ public:
 	~OneWireTempSensor();
 	double getValue();
 	void setOutput(int value);
+	void setCorF(TempFormat newCorF);
 	JSONObj *jsonify();
 	uint8_t *getAddress();
 	bool matchAddress(uint8_t *addr);
@@ -152,6 +153,9 @@ public:
 	void addDevice(Device *dev);
 	Device *getDevice(char *name);
 	Device *getDevice(int id);
+	Device *getHWGPIODevice(int pin);
+	Device *getDevice(uint8_t *addr);
+	Device *getDevice(uint8_t *addr, uint8_t pio);
 	char *deviceSearch();
 	JSONObj *jsonify();
 	JSONObj *status();

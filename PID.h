@@ -32,6 +32,12 @@ public:
 	uint8_t PWMDutyCycle();
 	JSONObj *jsonify();
 	void storeify(pidentity *pident);
+	void setP(double newP);
+	void setI(double newI);
+	void setD(double newD);
+	void setMinStateTime(unsigned long newMinStateTime);
+	void setDeadBand(double newBand);
+	void setPWMScale(double newScale);
 private:
 	double Kp;
 	double Ki;
