@@ -70,8 +70,8 @@ typedef struct connentity {
 	uint8_t indevID;
 	uint8_t inPIDdevID;
 	uint8_t Pstate;
-	uint8_t exp; //address of expression string
-	uint8_t expLen; //length of the exp string
+	uint16_t exp; //address of expression string
+	uint8_t explen; //length of the exp string
 } connentity; //5 bytes per connection 30 total
 
 
