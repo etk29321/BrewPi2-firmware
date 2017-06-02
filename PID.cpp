@@ -30,22 +30,22 @@ void PID::setSetPoint(double newtemp) {
 }
 
 
-void setP(double newP){
-	P=newP;
+void PID::setP(double newP){
+	Kp=newP;
 }
-void setI(double newI){
-	I=newI;
+void PID::setI(double newI){
+	Ki=newI;
 }
-void setD(double newD){
-	D=newD;
+void PID::setD(double newD){
+	Kd=newD;
 }
-void setMinStateTime(unsigned long newMinStateTime){
+void PID::setMinStateTime(unsigned long newMinStateTime){
 	minStateTime=newMinStateTime;
 }
-void setDeadBand(double newBand){
+void PID::setDeadBand(double newBand){
 	deadBand=newBand;
 }
-void setPWMScale(double newScale){
+void PID::setPWMScale(double newScale){
 	PWMScale=newScale;
 }
 
@@ -186,7 +186,7 @@ JSONObj *PID::jsonify(){
 }
 
 void PID::storeify(pidentity *pident){
-	if pident!=NULL{
+	if (pident!=NULL) {
 		pident->DeviceID=dev->DeviceID; //deventity name
 		pident->p=Kp;
 		pident->i=Ki;
@@ -275,11 +275,11 @@ JSONObj *PIDs::jsonify(){
 	return json;
 }
 
-PIDSTORObj *PIDS::storeify(){
+PIDSTORObj *PIDs::storeify(){
 	PIDSTORObj *store=new PIDSTORObj(pidCount);
 	store->pidCount=pidCount;
 	for (int i=0;i<pidCount;i++) {
-        deventity *child=store->pids[i];
+        pidentity *child=store->pids[i];
         if (root[i]!=NULL) {
         	root[i]->storeify(child);
         }

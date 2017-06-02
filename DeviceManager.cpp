@@ -481,12 +481,12 @@ Device *DeviceManager::getDevice(uint8_t *addr){
 		for (int i=0;i<devCount;i++) {
 			switch(devices[i]->getDeviceHardware()) {
 				case DEVICE_HARDWARE_ONEWIRE_TEMP:
-					if ((OneWireTempSensor *)devices[i]->matchAddress(addr)) {
+					if (((OneWireTempSensor *)devices[i])->matchAddress(addr)) {
 						return devices[i];
 					}
 					break;
 				case DEVICE_HARDWARE_ONEWIRE_2413:
-					if ((OneWireGPIO *)devices[i]->matchAddress(addr)) {
+					if (((OneWireGPIO *)devices[i])->matchAddress(addr)) {
 						return devices[i];
 					}
 					break;
@@ -496,17 +496,17 @@ Device *DeviceManager::getDevice(uint8_t *addr){
 	return NULL; //no such device name found
 }
 
-Device *DeviceManager::getDevice(uint8_t *addr, uint9_t pio){
+Device *DeviceManager::getDevice(uint8_t *addr, uint8_t pio){
 	if (devices!=NULL && addr!=NULL) {
 		for (int i=0;i<devCount;i++) {
 			switch(devices[i]->getDeviceHardware()) {
 				case DEVICE_HARDWARE_ONEWIRE_TEMP:
-					if ((OneWireTempSensor *)devices[i]->matchAddress(addr)) {
+					if (((OneWireTempSensor *)devices[i])->matchAddress(addr)) {
 						return devices[i];
 					}
 					break;
 				case DEVICE_HARDWARE_ONEWIRE_2413:
-					if ((OneWireGPIO *)devices[i]->matchAddress(addr) && ((OneWireGPIO *)devices[i]->getPin()==pio)) {
+					if (((OneWireGPIO *)devices[i])->matchAddress(addr) && (((OneWireGPIO *)devices[i])->getPin()==pio)) {
 						return devices[i];
 					}
 					break;
@@ -521,7 +521,7 @@ Device *DeviceManager::getHWGPIODevice(int pin){
 		for (int i=0;i<devCount;i++) {
 			switch(devices[i]->getDeviceHardware()) {
 				case DEVICE_HARDWARE_PIN:
-					if ((HardwareGPIO *)devices[i]->getPin()==pin) {
+					if (((HardwareGPIO *)devices[i])->getPin()==pin) {
 						return devices[i];
 					}
 					break;
@@ -610,18 +610,23 @@ DEVSTORObj *DeviceManager::storeify(){
         	}
         	memcpy(child->Name,devices[i]->getName(),namelen); //copy name, up to 16 chars
         	child->Name[namelen]='\0'; //ensure string is null terminated
-        	memcpy(child->address,devices[i]->getAddress(),8); //copy one-wire address
 			child->CorF=1; //temp format single bit
 			child->DeviceHardware=devices[i]->getDeviceHardware(); // enum, 2 bits
 			switch(devices[i]->getDeviceHardware()) {
             	case DEVICE_HARDWARE_PIN:
-            	case DEVICE_HARDWARE_ONEWIRE_2413:
-        			child->pinpio=devices[i]->getPin(); // gpio 1wire pio or hw pin, enum, 2 bits
-        			child->gpioMode=devices[i]->getGPIOMode();, //all gpio's, enum, 2 bits
+        			child->pinpio=((HardwareGPIO *)devices[i])->getPin(); // gpio 1wire pio or hw pin, enum, 2 bits
+        			child->gpioMode=((HardwareGPIO *)devices[i])->getGPIOMode(); //all gpio's, enum, 2 bits
         			break;
+            	case DEVICE_HARDWARE_ONEWIRE_2413:
+        			child->pinpio=((OneWireGPIO *)devices[i])->getPin(); // gpio 1wire pio or hw pin, enum, 2 bits
+        			child->gpioMode=((OneWireGPIO *)devices[i])->getGPIOMode(); //all gpio's, enum, 2 bits
+                	memcpy(child->address,((OneWireGPIO *)devices[i])->getAddress(),8); //copy one-wire address
+        			break;
+            	case DEVICE_HARDWARE_ONEWIRE_TEMP:
+                	memcpy(child->address,((OneWireTempSensor *)devices[i])->getAddress(),8); //copy one-wire address
             	default:
         			child->pinpio=2; // gpio 1wire pio or hw pin, enum, 2 bits
-        			child->gpioMode=0;, //all gpio's, enum, 2 bits
+        			child->gpioMode=0; //all gpio's, enum, 2 bits
             		break;
 			}
         } else {
@@ -632,10 +637,9 @@ DEVSTORObj *DeviceManager::storeify(){
     			child->CorF=1; //temp format single bit
     			child->DeviceHardware=0; // enum, 2 bits
             	child->pinpio=2; // gpio 1wire pio or hw pin, enum, 2 bits
-            	child->gpioMode=0;, //all gpio's, enum, 2 bits
-    			}
+            	child->gpioMode=0; //all gpio's, enum, 2 bits
         }
-	}
+    }
 	return store;
 }
 

@@ -273,24 +273,24 @@ char *Connection::getName() {
 }
 
 
-class Device *getOutDev(){
+class Device *Connection::getOutDev(){
 	return dev;
 }
-class Device *getInDev(){
+class Device *Connection::getInDev(){
 	return inputdev;
 }
-class PID *getInPID(){
+class PID *Connection::getInPID(){
 	return pid;
 }
-ConnMode getMode(){
+ConnMode Connection::getMode(){
 	return mode;
 }
 
 
-char *getExp(){
+char *Connection::getExp(){
 	return expression;
 }
-PIDState getPIDState(){
+PIDState Connection::getPIDState(){
 	if (mode==PIDHeating) {
 		return HEATING;
 	} else {

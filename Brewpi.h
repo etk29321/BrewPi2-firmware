@@ -50,6 +50,12 @@ class Connection;
 class Connections;
 class Syslog;
 class Storage;
+class DEVSTORObj;
+class PIDSTORObj;
+class CONNSTORObj;
+typedef struct deventity;
+typedef struct pidentity;
+typedef struct connentity;
 
 #ifndef XCODE
 #include "application.h"

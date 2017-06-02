@@ -1,12 +1,12 @@
-#include "Storage.h
+#include "Storage.h"
 
 // Objs
 
 DEVSTORObj::DEVSTORObj(int count){
 	devCount=count;
-	devs=malloc(sizeof(deventity *)*count);
+	devs=(deventity **)malloc(sizeof(deventity *)*count);
 	for (int i=0;i<count;i++){
-		devs[i]=malloc(sizeof(deventity));
+		devs[i]=(deventity *)malloc(sizeof(deventity));
 	}
 	return;
 }
@@ -21,9 +21,9 @@ DEVSTORObj::~DEVSTORObj(){
 
 PIDSTORObj::PIDSTORObj(int count){
 	pidCount=count;
-	pids=malloc(sizeof(pidentity *)*count);
+	pids=(pidentity **)malloc(sizeof(pidentity *)*count);
 	for (int i=0;i<count;i++){
-		pids[i]=malloc(sizeof(pidentity));
+		pids[i]=(pidentity *)malloc(sizeof(pidentity));
 	}
 	return;
 }
@@ -38,9 +38,9 @@ PIDSTORObj::~PIDSTORObj(){
 
 CONNSTORObj::CONNSTORObj(int count){
 	connCount=count;
-	conns=malloc(sizeof(connentity *)*count);
+	conns=(connentity **)malloc(sizeof(connentity *)*count);
 	for (int i=0;i<count;i++){
-		conns[i]=malloc(sizeof(connentity));
+		conns[i]=(connentity *)malloc(sizeof(connentity));
 	}
 	return;
 }
@@ -77,7 +77,7 @@ void Storage::read() {
 	for (int i=0;i<fs.devCount;i++) {
 		deventity dev;
 		EEPROM.get(pos,dev);
-		memcopy(devstore->devs[i],&dev,sizeof(deventity));
+		memcpy(devstore->devs[i],&dev,sizeof(deventity));
 		pos+=sizeof(deventity);
 
 	}
@@ -87,10 +87,10 @@ void Storage::read() {
 		return; //invalid data in EEPROM
 	}
 	PIDSTORObj *pidstore=new PIDSTORObj(fs.pidCount);
-	for (int i-0;i<fs.pidCount;i++) {
+	for (int i=0;i<fs.pidCount;i++) {
 		pidentity pid;
 		EEPROM.get(pos,pid);
-		memcopy(pidstore->pids[i],&pid,sizeof(pidentity));
+		memcpy(pidstore->pids[i],&pid,sizeof(pidentity));
 		pos+=sizeof(pidentity);
 
 	}
@@ -103,7 +103,7 @@ void Storage::read() {
 	for (int i=0;i<fs.connCount;i++) {
 		connentity conn;
 		EEPROM.get(pos,conn);
-		memcopy(connstore->conns[i],&conn,sizeof(connentity));
+		memcpy(connstore->conns[i],&conn,sizeof(connentity));
 		pos+=sizeof(connentity);
 
 	}
@@ -118,82 +118,82 @@ void Storage::apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *con
 	//devices
 	for (int i=0;i<devstore->devCount;i++) {
 		Device *dev;
-		switch (devstore->devs[i].DeviceHardware) {
+		switch (devstore->devs[i]->DeviceHardware) {
 	    	case DEVICE_HARDWARE_ONEWIRE_TEMP:
-	    		dev=deviceManager->getDevice(&(devstore->devs[i].address));
+	    		dev=deviceManager->getDevice(devstore->devs[i]->address);
 	    		if (dev!=NULL) {
-	    			dev->setCorF(devstore->devs[i].CorF);
+	    			dev->setCorF(devstore->devs[i]->CorF);
 	    		}
 	            break;
 	        case DEVICE_HARDWARE_PIN:
-	    		dev=deviceManager->getHWGPIODevice(devstore->devs[i].pinpio);
+	    		dev=deviceManager->getHWGPIODevice(devstore->devs[i]->pinpio);
 	    		if (dev!=NULL) {
-	    			dev->setGPIOMode(devstore->devs[i].gpioMode);
+	    			dev->setGPIOMode(devstore->devs[i]->gpioMode);
 	    		}
 	            break;
 	        case DEVICE_HARDWARE_ONEWIRE_2413:
-	    		dev=deviceManager->getDevice(&(devstore->devs[i].address),devstore->devs[i].pinpio);
+	    		dev=deviceManager->getDevice(devstore->devs[i]->address,devstore->devs[i]->pinpio);
 	    		if (dev!=NULL) {
-	    			dev->setGPIOMode(devstore->devs[i].gpioMode);
+	    			dev->setGPIOMode(devstore->devs[i]->gpioMode);
 	    		}
 	        	break;
 	        default:
 	        	dev=NULL;
 		}
 		if (dev!=NULL) {
-			devstore->devs[i].DeviceID=dev->DeviceID; //fix up DeviceID to make sure they match the deviceManager ID
-			dev->setName(&(devstore->devs[i].Name));
-			dev->setStrName(String(devstore->devs[i].Name);
+			devstore->devs[i]->DeviceID=dev->DeviceID; //fix up DeviceID to make sure they match the deviceManager ID
+			dev->setName(devstore->devs[i]->Name);
+			dev->setStrName(String(devstore->devs[i]->Name));
 		}
 	}
 
 
 	//pids
 	for (int i=0;i<pidstore->pidCount;i++) {
-		Device *dev=deviceManager->getDevice(pidstor->pids[i].DeviceID);
+		Device *dev=deviceManager->getDevice(pidstor->pids[i]->DeviceID);
 		if (dev!=NULL) {
 			PID *pid=pids->getPID(dev->getName());
 			if(pid!=NULL) {
-				pid=>setP(pidstore->pids[i].p);
-				pid=>setI(pidstore->pids[i].i);
-				pid=>setD(pidstore->pids[i].d);
-				pid=>setSetPoint(pidstore->pids[i].setPoint);
-				pid=>setMinStateTime(pidstore->pids[i].minStateTimeSecs);
-				pid=>setDeadBand(pidstore->pids[i].deadBand);
-				pid=>setPWMScale(pidstore->pids[i].PWMScale);
+				pid=>setP(pidstore->pids[i]->p);
+				pid=>setI(pidstore->pids[i]->i);
+				pid=>setD(pidstore->pids[i]->d);
+				pid=>setSetPoint(pidstore->pids[i]->setPoint);
+				pid=>setMinStateTime(pidstore->pids[i]->minStateTimeSecs);
+				pid=>setDeadBand(pidstore->pids[i]->deadBand);
+				pid=>setPWMScale(pidstore->pids[i]->PWMScale);
 			}
 		}
 	}
 
 	//connections
 	for (int i=0;i<connstore->connCount;i++) {
-		switch(connstore->conns[i].mode) {
+		switch(connstore->conns[i]->mode) {
 			case PIDCooling:
 			case PIDHeating:
-				Device *dev=deviceManager->getDevice(connstore->conns[i].outdevID);
-				Device *piddev=deviceManager->getDevice(connstore->conns[i].PIDdevID);
+				Device *dev=deviceManager->getDevice(connstore->conns[i]->outdevID);
+				Device *piddev=deviceManager->getDevice(connstore->conns[i]->PIDdevID);
 				if (dev!=NULL && piddev!=NULL) {
 					PID *pid=pids->getPID(piddev->getName());
 					if (pid!=NULL) {
-						Connection *conn=new Connection(dev,pid,connstore->conns[i].Pstate);
+						Connection *conn=new Connection(dev,pid,connstore->conns[i]->Pstate);
 						connections->addConnection(conn);
 					}
 				}
 				break;
 			case DevMode:
-				Device *outdev=deviceManager->getDevice(connstore->conns[i].outdevID);
-				Device *indev=deviceManager->getDevice(connstore->conns[i].indevID);
+				Device *outdev=deviceManager->getDevice(connstore->conns[i]->outdevID);
+				Device *indev=deviceManager->getDevice(connstore->conns[i]->indevID);
 				if (outdev!=NULL && indev!=NULL) {
 					Connection *conn=new Connection(outdev,indev);
 					connections->addConnection(conn);
 				}
 				break;
 			case Custom:
-				connent.outdevID=(conn->getOutDev())->DeviceID;
+				connent->outdevID=(conn->getOutDev())->DeviceID;
 				exp=conn->getExp();
 
-				Device *outdev=deviceManager->getDevice(connstore->conns[i].outdevID);
-				char *exp=readString(connstore->conns[i].exp, connstore->conns[i].explen);
+				Device *outdev=deviceManager->getDevice(connstore->conns[i]->outdevID);
+				char *exp=readString(connstore->conns[i]->exp, connstore->conns[i]->explen);
 				if (outdev!=NULL && exp!=NULL) {
 					Connection *conn=new Connection(outdev,exp);
 					connections->addConnection(conn);
@@ -226,23 +226,23 @@ void Storage::write() {
 	pos+=sizeof(fstable);
 	//write devices
 	for (int i=0;i<devstor->devCount;i++) {
-		EEPROM.put(pos,devstor->devs[i]);
+		EEPROM.put(pos,*(devstor->devs[i]));
 		pos+=sizeof(deventity);
 	}
 	//write pids
 	for (int i=0;i<pidstor->pidCount;i++) {
-		EEPROM.put(pos,pidstor->pids[i]);
+		EEPROM.put(pos,*(pidstor->pids[i]));
 		pos+=sizeof(pidentity);
 	}
 	//write connections
 	for (int i=0;i<conns->getNumConns();i++) {
 		connentity connent;
-		connent.outdevID=0;
-		connent.PIDdevID=0;
-		connent.Pstate=0;
-		connent.indevID=0;
-		connent.exp=EEPROM.length; //address of expression string
-		connent.expLen=0; //length
+		connent->outdevID=0;
+		connent->PIDdevID=0;
+		connent->Pstate=0;
+		connent->indevID=0;
+		connent->exp=EEPROM.length; //address of expression string
+		connent->expLen=0; //length
 
 		char *exp;
 		Connection *conn=conns->getConnection(i);
@@ -251,20 +251,20 @@ void Storage::write() {
 			switch(connent.mode) {
 				case PIDCooling:
 				case PIDHeating:
-					connent.outdevID=(conn->getOutDev())->DeviceID;
-					connent.PIDdevID=(conn->getInPID())->PIDID;
-					connent.Pstate=conn->getPIDState();
+					connent->outdevID=(conn->getOutDev())->DeviceID;
+					connent->PIDdevID=(conn->getInPID())->PIDID;
+					connent->Pstate=conn->getPIDState();
 					break;
 				case DevMode:
-					connent.outdevID=(conn->getOutDev())->DeviceID;
-					connent.indevID=(conn->getInDev())->DeviceID;
+					connent->outdevID=(conn->getOutDev())->DeviceID;
+					connent->indevID=(conn->getInDev())->DeviceID;
 					break;
 				case Custom:
-					connent.outdevID=(conn->getOutDev())->DeviceID;
+					connent->outdevID=(conn->getOutDev())->DeviceID;
 					exp=conn->getExp();
-					connent.exp=strPos; //address of expression string
-					connent.expLen=strlen(exp); //length
-					EEPROM.put(pos,conmstor->conns[i]);
+					connent->exp=strPos; //address of expression string
+					connent->expLen=strlen(exp); //length
+					EEPROM.put(pos,*(conmstor->conns[i]));
 					strPos=writeString(exp, strPos);
 					break;
 			}

@@ -626,7 +626,23 @@
 			return atoi(val);
 
 		}
-		return 0;
+		if (array!=NULL) {
+			return 0;
+		}
+		return (int)numval;
+	}
+	double JSONElement::getValueAsDouble() {
+		if (obj!=NULL) {
+			return 0;
+		}
+		if (val!=NULL) {
+			return atoi(val);
+
+		}
+		if (array!=NULL) {
+			return 0;
+		}
+		return numval;
 	}
 
 	JSONArray *JSONElement::getValueAsArray() {

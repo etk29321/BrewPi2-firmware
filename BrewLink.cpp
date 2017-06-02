@@ -245,7 +245,7 @@ char *BrewLink::processCmd(char *cmd) {
 	printDebug("Recieved command: %s",cmd);
 	IPAddress localIP;
 	byte mac[6];
-	JSONObj *json;
+	//JSONObj *json;
 	//JSONElement *jsonel;
 	switch (*cmd) {
 	case 'i':
@@ -484,13 +484,18 @@ char *BrewLink::cmdPIDs(char *cmd) {
 					if(pid!=NULL) {
 						JSONObj * pidupdate=jsonel->getValueAsObj();
 						if (pidupdate!=NULL) {
-							JSONElement *jsonKp=json->getElement("Kp");
-							if (jsonKp!=NULL) {
-								pid=>setP(jsonKp->getValue());
+							jsonel=pidupdate->getElement("Kp");
+							if (jsonel!=NULL) {
+								pid->setP(jsonel->getValueAsDouble());
 							}
-							JSONElement *jsonKi=json->getElement("Ki");
-							if (jsonKi!=NULL) {
-								pid=>setI(jsonKi->getValue());
+							jsonel=pidupdate->getElement("Ki");
+							if (jsonel!=NULL) {
+								pid->setI(jsonel->getValueAsDouble());
+							}
+
+							jsonel=pidupdate->getElement("Kd");
+							if (jsonel!=NULL) {
+								pid->setD(jsonel->getValueAsDouble());
 							}
 						}
 					}

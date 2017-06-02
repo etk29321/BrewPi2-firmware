@@ -71,7 +71,7 @@ protected:
 
 class OneWireTempSensor: public Device {
 public:
-	OneWireTempSensor(uint8_t DevID, DeviceHardware dH=DEVICE_HARDWARE_ONEWIRE_TEMP): Device(DEVICE_HARDWARE_ONEWIRE_TEMP){
+	OneWireTempSensor(uint8_t DevID, DeviceHardware dH=DEVICE_HARDWARE_ONEWIRE_TEMP): Device(DevID,DEVICE_HARDWARE_ONEWIRE_TEMP){
 		sensor=NULL;
 		CorF=F; //default to Farenheit
         address=NULL;
@@ -94,7 +94,7 @@ protected:
 
 class OneWireGPIO: public Device {
 public:
-	OneWireGPIO(uint8_t DevID, DeviceHardware dH=DEVICE_HARDWARE_ONEWIRE_2413): Device(DEVICE_HARDWARE_ONEWIRE_2413){
+	OneWireGPIO(uint8_t DevID, DeviceHardware dH=DEVICE_HARDWARE_ONEWIRE_2413): Device(DevID,DEVICE_HARDWARE_ONEWIRE_2413){
 		gpioMode=OUTPUT; //defaults to output
 		bus=NULL;
         address=NULL;
@@ -122,7 +122,7 @@ protected:
 
 class HardwareGPIO: public Device {
 public:
-	HardwareGPIO(uint8_t DevID, DeviceHardware dH=DEVICE_HARDWARE_PIN): Device(DEVICE_HARDWARE_PIN){
+	HardwareGPIO(uint8_t DevID, DeviceHardware dH=DEVICE_HARDWARE_PIN): Device(DevID,DEVICE_HARDWARE_PIN){
 		gpioMode=OUTPUT; //defaults to output
 		pin=-1;
         name=NULL;

@@ -3,6 +3,9 @@
 
 #include "Brewpi.h"
 #include "JSON.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 
 
@@ -12,73 +15,69 @@
 ///size_t length = EEPROM.length();
 
 
-struct fstable {
-	uint8_t devCount,
-	uint8_t pidCount,
-	uint8_t connCount
-}
-
-typedef struct fstable
+typedef struct fstable {
+	uint8_t devCount;
+	uint8_t pidCount;
+	uint8_t connCount;
+} fstable;
 
 
 
-struct deventity {
-	uint8_t DeviceID,
-	char Name[20],
-	uint8_t address[8], // 1wire address, 8 bits
-	uint8_t CorF, //temp format single bit
-	uint8_t DeviceHardware, // enum, 2 bits
-	uint8_t pinpio // gpio 1wire pio or hw pin, enum, 2 bits
-	uint8_t gpioMode, //all gpio's, enum, 2 bits
-}; //29 bytes per dev (26min)  338 total  - 3 per io board    g, f1, f2  = 348
 
-typedef struct deventity;
+typedef struct deventity {
+	uint8_t DeviceID;
+	char Name[20];
+	uint8_t address[8]; // 1wire address, 8 bits
+	uint8_t CorF; //temp format single bit
+	uint8_t DeviceHardware; // enum, 2 bits
+	uint8_t pinpio; // gpio 1wire pio or hw pin, enum, 2 bits
+	uint8_t gpioMode; //all gpio's, enum, 2 bits
+} deventity; //29 bytes per dev (26min)  338 total  - 3 per io board    g, f1, f2  = 348
+
 
 class DEVSTORObj {
 public:
-	DEVSTORObj();
+	DEVSTORObj(int count);
 	~DEVSTORObj();
 	int devCount;
 	deventity **devs;
 };
 
-struct pidentity {
-	uint8_t DeviceID, //deventity name
-    uint8_t p,
-    uint8_t i,
-    uint8_t d,
-    uint8_t setPoint,
-    uint8_t minStateTimeSecs, // in seconds
-    uint8_t deadBand,
-    uint8_t PWMScale,
-}; //8 bytes per pid 24 total - 3 PIDs
+typedef struct pidentity {
+	uint8_t DeviceID; //deventity name
+    uint8_t p;
+    uint8_t i;
+    uint8_t d;
+    uint8_t setPoint;
+    uint8_t minStateTimeSecs; // in seconds
+    uint8_t deadBand;
+    uint8_t PWMScale;
+} pidentity; //8 bytes per pid 24 total - 3 PIDs
 
-typedef struct pidentity;
 
 class PIDSTORObj {
 public:
-	PIDSTORObj();
+	PIDSTORObj(int Count);
 	~PIDSTORObj();
 	int pidCount;
 	pidentity **pids;
 };
 
 
-struct connentity {
-	uint8_t outdevID,
-	uint8_t mode,
-	unit8_t indevID,
-	unit8_t inPIDdevID,
-	uint8_t Pstate,
-	uint8_t exp, //address of expression string
-	uint8_t expLen //length of the exp string
-}; //5 bytes per connection 30 total
+typedef struct connentity {
+	uint8_t outdevID;
+	uint8_t mode;
+	uint8_t indevID;
+	uint8_t inPIDdevID;
+	uint8_t Pstate;
+	uint8_t exp; //address of expression string
+	uint8_t expLen; //length of the exp string
+} connentity; //5 bytes per connection 30 total
 
-typedef struct connentity;
 
 class CONNSTORObj {
 public:
-	CONNSTORObj();
+	CONNSTORObj(int count);
 	~CONNSTORObj();
 	int connCount;
 	connentity **conns;
