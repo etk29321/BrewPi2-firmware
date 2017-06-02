@@ -60,7 +60,8 @@ Storage::Storage(){
 }
 
 //read
-void Storage::read() {
+char *Storage::read() {
+	char *reply=NULL;
 	fstable fs;
 	pos=0;
 
@@ -71,7 +72,7 @@ void Storage::read() {
 	//read devices
 	pos+=sizeof(fstable);
 	if (fs.devCount==0 || fs.devCount==255) {
-		return; //invalid data in EEPROM
+		return NULL; //invalid data in EEPROM
 	}
 	DEVSTORObj *devstore=new DEVSTORObj(fs.devCount);
 	for (int i=0;i<fs.devCount;i++) {
@@ -84,7 +85,7 @@ void Storage::read() {
 
 	//read pids
 	if (fs.pidCount==0 || fs.pidCount==255) {
-		return; //invalid data in EEPROM
+		return NULL; //invalid data in EEPROM
 	}
 	PIDSTORObj *pidstore=new PIDSTORObj(fs.pidCount);
 	for (int i=0;i<fs.pidCount;i++) {
@@ -97,7 +98,7 @@ void Storage::read() {
 
 	//read connections
 	if (fs.connCount==0 || fs.connCount==255) {
-		return; //invalid data in EEPROM
+		return NULL; //invalid data in EEPROM
 	}
 	CONNSTORObj *connstore=new CONNSTORObj(fs.connCount);
 	for (int i=0;i<fs.connCount;i++) {
@@ -110,7 +111,11 @@ void Storage::read() {
 	strPos=sizeof(fstable) + sizeof(deventity)*fs.devCount + sizeof(pidentity)*fs.pidCount + sizeof(connentity)*fs.connCount+1;
 
 	apply(devstore,pidstore,connstore);
-
+	reply=(char *)malloc(sizeof(char)*(15));
+	//			   0         1         2         3         4
+	//			   01234567890123456789012345678901234567890
+	sprintf(reply,"Config Loaded!");
+	return reply;
 }
 
 // apply - make changes read from eeprom active in the running config
@@ -150,7 +155,7 @@ void Storage::apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *con
 
 	//pids
 	for (int i=0;i<pidstore->pidCount;i++) {
-		Device *dev=deviceManager->getDevice(pidstore->pids[i]->DeviceID);
+		Device *dev=deviceManager->getDevice(devstore->devs[pidstore->pids[i]->DeviceID]->address); //get device by address. PIDs only attach to temp sensors
 		if (dev!=NULL) {
 			PID *pid=pids->getPID(dev->getName());
 			if(pid!=NULL) {
@@ -175,8 +180,8 @@ void Storage::apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *con
 		switch(connstore->conns[i]->mode) {
 			case PIDCooling:
 			case PIDHeating:
-				dev=deviceManager->getDevice(connstore->conns[i]->outdevID);
-				piddev=deviceManager->getDevice(connstore->conns[i]->inPIDdevID);
+				dev=deviceManager->getDevice(devstore->devs[connstore->conns[i]->outdevID]->address);
+				piddev=deviceManager->getDevice(devstore->devs[connstore->conns[i]->inPIDdevID]->address);
 				if (dev!=NULL && piddev!=NULL) {
 					PID *pid=pids->getPID(piddev->getName());
 					if (pid!=NULL) {
@@ -186,15 +191,15 @@ void Storage::apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *con
 				}
 				break;
 			case DevMode:
-				outdev=deviceManager->getDevice(connstore->conns[i]->outdevID);
-				indev=deviceManager->getDevice(connstore->conns[i]->indevID);
+				outdev=deviceManager->getDevice(devstore->devs[connstore->conns[i]->outdevID]->address);
+				indev=deviceManager->getDevice(devstore->devs[connstore->conns[i]->indevID]->address);
 				if (outdev!=NULL && indev!=NULL) {
 					Connection *conn=new Connection(outdev,indev);
 					connections->addConnection(conn);
 				}
 				break;
 			case Custom:
-				outdev=deviceManager->getDevice(connstore->conns[i]->outdevID);
+				outdev=deviceManager->getDevice(devstore->devs[connstore->conns[i]->outdevID]->address);
 				exp=readString(connstore->conns[i]->exp, connstore->conns[i]->explen);
 				if (outdev!=NULL && exp!=NULL) {
 					Connection *conn=new Connection(outdev,exp);
@@ -214,7 +219,8 @@ void Storage::apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *con
 
 //write
 
-void Storage::write() {
+char *Storage::write() {
+	char *reply=NULL;
 	DEVSTORObj *devstor=deviceManager->storeify();
 	PIDSTORObj *pidstor=pids->storeify();
 	fstable fs;
@@ -244,17 +250,27 @@ void Storage::write() {
 		connent.Pstate=0;
 		connent.indevID=255;
 		connent.exp=(uint16_t)EEPROM.length(); //address of expression string
-		connent.expLen=0; //length
+		connent.explen=0; //length
 
 		char *exp;
 		Connection *conn=connections->getConnection(i);
+		PID *inpid;
+		Device *dev;
 		if (conn!=NULL){
 			connent.mode=conn->getMode();
 			switch(connent.mode) {
 				case PIDCooling:
 				case PIDHeating:
 					connent.outdevID=(conn->getOutDev())->DeviceID;
-					connent.inPIDdevID=(conn->getInPID())->PIDID;
+					inpid=conn->getInPID();
+					if (inpid!=NULL) {
+						dev=inpid->getDevice();
+						if(dev!=NULL) {
+							connent.inPIDdevID=dev->DeviceID;
+						} else{
+							connent.inPIDdevID=0;
+						}
+					}
 					connent.Pstate=conn->getPIDState();
 					break;
 				case DevMode:
@@ -277,21 +293,25 @@ void Storage::write() {
 	}
 	delete devstor;
 	delete pidstor;
-
+	reply=(char *)malloc(sizeof(char)*(15));
+	//			   0         1         2         3         4
+	//			   01234567890123456789012345678901234567890
+	sprintf(reply,"Config Stored!");
+	return reply;
 }
 
 int Storage::writeString(char *str, int pos) {
 	if (str==NULL) {
 		return pos++;
 	}
-	if (pos>EEPROM.length) {
+	if (pos>EEPROM.length()) {
 		return pos;
 	}
 	int len=strlen(str);
 	for(int i=0;i<=len;i++) {
 		EEPROM.write(pos,str[i]);
 		pos++;
-		if (pos>EERPOM.length) {
+		if (pos>EEPROM.length()) {
 			return pos;
 		}
 	}
@@ -299,15 +319,26 @@ int Storage::writeString(char *str, int pos) {
 }
 
 char *Storage::readString(int pos, int len) {
-	char *str=malloc(sizeof(char)*len);
-	for(int i=0;i<len;i++) {
+	char *str=(char *)malloc(sizeof(char)*len);
+	int i;
+	for(i=0;i<len;i++) {
 		str[i]=(char)EEPROM.read(pos);
 		pos++;
-		if (pos>EERPOM.length) {
+		if (pos>EEPROM.length()) {
 			str[i]='\0';
 			return str;
 		}
 	}
 	str[i]='\0';  //ensure we always return a null terminated string.
 	return str;
+}
+
+void Storage::dump(){
+	char line[256];
+	for(int i=0;i<EEPROM.length();i++) {
+		for(int l=0;l<256;l++) {
+			line[l]=EEPROM.read(i);
+		}
+		bLink->printDebug("%",line);
+	}
 }

@@ -35,7 +35,7 @@ public:
 	void printDebug(const char *format, ...);
 	char *processCmd(char *cmd);
 	char *cmdStatus();
-	char *cmdDeviceSearch();
+	char *cmdDeviceSearch(char *cmd);
 	char *cmdToggle(char *cmd);
 	char *cmdSet(char *cmd);
 	char *cmdConn(char *cmd);

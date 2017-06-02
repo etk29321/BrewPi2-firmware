@@ -164,6 +164,10 @@ uint8_t PID::PWMDutyCycle(){
 	return (abs((int)PIDvalue)*PWMScale);
 }
 
+Device *PID::getDevice(){
+	return dev;
+}
+
 JSONObj *PID::jsonify(){
 	JSONObj *json=new JSONObj();
 	json->addElement("Sensor",dev->getName());
@@ -255,6 +259,7 @@ void PIDs::updatePIDs(){
 PID *PIDs::getPID(char *name){ //PID name is the dev->getName() of the underlying device
 	for(int i=0;i<pidCount;i++) {
 		if (root[i]!=NULL && root[i]->getName()!=NULL) {
+			bLink->printDebug("Looking for |%s| Looking at |%s|",name,root[i]->getName());
 			if(!strcmp(name,root[i]->getName())){
 				return root[i];
 			}

@@ -59,7 +59,12 @@ void setup()
     char * reply=deviceManager->deviceSearch();  //autodiscover any attached devices
     free(reply);
 
-    // get settings
+    // dynamic settings
+    reply=storage->read();
+    free(reply);
+
+    // hardcoded settings
+    /*
     uint8_t ferm1set;
     uint8_t ferm2set;
     uint8_t glycolset;
@@ -140,7 +145,7 @@ void setup()
     	Connection *conn=new Connection((Device *)owgpio,temppid,COOLING);
     	connections->addConnection(conn);
     }
-
+     */
     lastTime=millis();
     bLink->printDebug("Setup completed!");
 

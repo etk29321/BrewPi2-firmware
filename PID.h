@@ -38,6 +38,7 @@ public:
 	void setMinStateTime(unsigned long newMinStateTime);
 	void setDeadBand(double newBand);
 	void setPWMScale(double newScale);
+	Device *getDevice();
 private:
 	double Kp;
 	double Ki;

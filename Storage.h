@@ -87,8 +87,9 @@ class Storage {
 public:
 	Storage();
 	~Storage();
-	void read();
-	void write();
+	char *read();
+	char *write();
+	void dump(); //dump EEPROM to debug console
 	int writeString(char *str, int pos);
 	char *readString(int pos, int len);
 	void apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *connstore);

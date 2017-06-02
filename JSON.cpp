@@ -495,7 +495,8 @@
 		case '7':
 		case '8':
 		case '9':
-			numval=atoi(pos);
+			//numval=atoi(pos);
+			numval=strtod(pos,NULL);
 			break;
 		}
         size_t namelen=strlen(tmpname)+1;
@@ -636,7 +637,7 @@
 			return 0;
 		}
 		if (val!=NULL) {
-			return atoi(val);
+			return strtod(val,NULL);
 
 		}
 		if (array!=NULL) {
