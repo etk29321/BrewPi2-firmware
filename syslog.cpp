@@ -13,7 +13,7 @@ void Syslog::log(String msg){
 }
 
 void Syslog::log(String msgtype, String msg){
-
+    if (configured) {
 	String *packet = new String(msgtype + SP+ SYSLOG_VER + SP +NILVAL + SP + hname + SP + \
 			               SYSLOG_APPNAME + SP + NILVAL + SP + NILVAL + SP + NILVAL + SP + msg);
 
@@ -26,12 +26,23 @@ void Syslog::log(String msgtype, String msg){
 	udp.begin(port);
 	udp.sendPacket(buf, pktsize, server, port);
 	udp.stop();
+    }
 }
 
+Syslog::Syslog(){
+    configured=false;
+}
 
 Syslog::Syslog(String hostname, IPAddress syslogServer, int syslogPort){
 	hname=hostname;
 	server=syslogServer;
 	port=syslogPort;
+    configured=true;
 }
 
+void Syslog::configure(String hostname, IPAddress syslogServer, int syslogPort){
+    hname=hostname;
+    server=syslogServer;
+    port=syslogPort;
+    configured=true;
+}

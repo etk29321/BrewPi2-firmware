@@ -1,27 +1,34 @@
 # Testing Devices
 d{"Devices":[{"28a1da7f08000081":{"Name":"Ferm1","CorF":1}}]}
-d{"Devices":[{"3a1b0c21000000e20":{"Name":"GlycolPump","gpioMode":1}}]}
-d{"Devices":[{"3a1b0c21000000e21":{"Name":"GlycolChiller","gpioMode":1}}]}
-
-# Production Devices
-d{"Devices":[{"28fae0a006000001":{"Name":"Ferm1","CorF":1}}]}
-d{"Devices":[{"28b80504090000ea":{"Name":"Ferm2","CorF":1}}]}
-d{"Devices":[{"28e146a106000082":{"Name":"Glycol","CorF":1}}]}
-d{"Devices":[{"3af51321000000cb0":{"Name":"GlycolFerm1","gpioMode":1}}]}
-d{"Devices":[{"3a1b20210000003b0":{"Name":"GlycolFerm2","gpioMode":1}}]}
-d{"Devices":[{"3a2d0e210000003e0":{"Name":"GlycolPump","gpioMode":1}}]}
-d{"Devices":[{"3a2d0e210000003e1":{"Name":"GlycolChiller","gpioMode":1}}]}
-d{"Devices":[{"3af51321000000cb1":{"Name":"HeatingFerm1","gpioMode":1}}]}
-d{"Devices":[{"3a1b20210000003b1":{"Name":"HeatingFerm2","gpioMode":1}}]}
-
+d{"Devices":[{"3a1b0c21000000e20":{"Name":"GlycolFerm1","gpioMode":1}}]}
+d{"Devices":[{"3a1b0c21000000e21":{"Name":"HeatFerm1","gpioMode":1}}]}
 
 p{"PIDs": [{"Ferm1":{"Kp":5.00,"Ki":0.25,"Kd":1.50,"setPoint":100.00,"minStateTime":120,"deadBand":0.5,"PWMScale":1.00}}]}
-p{"PIDs": [{"Ferm2":{"Kp":5.00,"Ki":0.25,"Kd":1.50,"setPoint":100.00,"minStateTime":120,"deadBand":0.5,"PWMScale":1.00}}]}
+
+c{"Connections":[{"Add":{"OutputDevice":"HeatFerm1","mode":1.00,"PID":"Ferm1"}}]}
+c{"Connections":[{"Add":{"OutputDevice":"GlycolFerm1","mode":3.00,"Expression":"[CFerm1"}}]}
+
+
+
+# Production Devices
+d{"Devices":[{"28fae0a006000001":{"Name":"Fermenter1","CorF":1}}]}
+d{"Devices":[{"28b80504090000ea":{"Name":"Fermenter2","CorF":1}}]}
+d{"Devices":[{"28e146a106000082":{"Name":"Glycol","CorF":1}}]}
+d{"Devices":[{"3af51321000000cb0":{"Name":"GlycolFermenter1","gpioMode":1}}]}
+d{"Devices":[{"3a1b20210000003b0":{"Name":"GlycolFermenter2","gpioMode":1}}]}
+d{"Devices":[{"3a2d0e210000003e0":{"Name":"GlycolPump","gpioMode":1}}]}
+d{"Devices":[{"3a2d0e210000003e1":{"Name":"GlycolChiller","gpioMode":1}}]}
+d{"Devices":[{"3af51321000000cb1":{"Name":"HeatingFermenter1","gpioMode":1}}]}
+d{"Devices":[{"3a1b20210000003b1":{"Name":"HeatingFermenter2","gpioMode":1}}]}
+
+
+p{"PIDs": [{"Fermenter1":{"Kp":5.00,"Ki":0.25,"Kd":1.50,"setPoint":100.00,"minStateTime":120,"deadBand":0.5,"PWMScale":1.00}}]}
+p{"PIDs": [{"Fermenter2":{"Kp":5.00,"Ki":0.25,"Kd":1.50,"setPoint":100.00,"minStateTime":120,"deadBand":0.5,"PWMScale":1.00}}]}
 p{"PIDs": [{"Glycol":{"Kp":5.00,"Ki":0.25,"Kd":1.50,"setPoint":38.00,"minStateTime":120,"deadBand":1.0,"PWMScale":1.00}}]}
  
 c{"Connections":[{"Add":{"OutputDevice":"GlycolChiller","mode":0.00,"PID":"Glycol"}}]}
-c{"Connections":[{"Add":{"OutputDevice":"GlycolPump","mode":3.00,"Expression":"[CFerm1 | [CFerm2"}}]}
-c{"Connections":[{"Add":{"OutputDevice":"HeatingFerm1","mode":1.00,"PID":"Ferm1"}}]}
-c{"Connections":[{"Add":{"OutputDevice":"GlycolFerm1","mode":0.00,"PID":"Ferm1"}}]}
-c{"Connections":[{"Add":{"OutputDevice":"HeatingFerm2","mode":1.00,"PID":"Ferm2"}}]}
-c{"Connections":[{"Add":{"OutputDevice":"GlycolFerm2","mode":0.00,"PID":"Ferm2"}}]}
+c{"Connections":[{"Add":{"OutputDevice":"GlycolPump","mode":3.00,"Expression":"[CFermenter1 | [CFermenter2"}}]}
+c{"Connections":[{"Add":{"OutputDevice":"HeatingFermenter1","mode":1.00,"PID":"Fermenter1"}}]}
+c{"Connections":[{"Add":{"OutputDevice":"GlycolFermenter1","mode":0.00,"PID":"Fermenter1"}}]}
+c{"Connections":[{"Add":{"OutputDevice":"HeatingFermenter2","mode":1.00,"PID":"Fermenter2"}}]}
+c{"Connections":[{"Add":{"OutputDevice":"GlycolFermenter2","mode":0.00,"PID":"Fermenter2"}}]}

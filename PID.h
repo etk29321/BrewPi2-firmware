@@ -31,7 +31,7 @@ public:
 	String getStrName();
 	uint8_t PWMDutyCycle();
 	JSONObj *jsonify();
-	void storeify(pidentity *pident);
+	pidentity* storeify();
 	void setP(double newP);
 	void setI(double newI);
 	void setD(double newD);

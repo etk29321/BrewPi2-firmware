@@ -79,10 +79,10 @@ void PID::update(){
 		state=IDLE;
 		//String strName=getStrName();
 		//String msg=String("PID" + strName+ " changed to IDLE.");
-		//syslog.log(msg);
+		//piNet.log(msg);
 		char msgbuf[246];
         sprintf(msgbuf,"PID %s changed to IDLE",getName());
-        syslog.log(msgbuf);
+        piNet.log(msgbuf);
 		lastStateChange=stime;
 		PIDvalue=0;
 		I=0;
@@ -91,10 +91,10 @@ void PID::update(){
 			state=IDLE;
 			//String strName=getStrName();
 			//String msg=String("PID" + strName+ " changed to IDLE.");
-			//syslog.log(msg);
+			//piNet.log(msg);
 			char msgbuf[246];
 	        sprintf(msgbuf,"PID %s changed to IDLE",getName());
-	        syslog.log(msgbuf);
+	        piNet.log(msgbuf);
 			lastStateChange=stime;
 			PIDvalue=0;
 			I=0;
@@ -104,20 +104,20 @@ void PID::update(){
 					state=HEATING;
 					//String strName=getStrName();
 					//String msg=String("PID" + strName+ " changed to HEATING.");
-					//syslog.log(msg);
+					//piNet.log(msg);
 					char msgbuf[246];
 			        sprintf(msgbuf,"PID %s changed to HEATING",getName());
-			        syslog.log(msgbuf);
+			        piNet.log(msgbuf);
 					lastStateChange=stime;
 
 				} else {
 					state=COOLING;
 					//String strName=getStrName();
 					//String msg=String("PID" + strName+ " changed to COOLING.");
-					//syslog.log(msg);
+					//piNet.log(msg);
 					char msgbuf[246];
 			        sprintf(msgbuf,"PID %s changed to COOLING",getName());
-			        syslog.log(msgbuf);
+			        piNet.log(msgbuf);
 					lastStateChange=stime;
 
 				}
@@ -189,17 +189,19 @@ JSONObj *PID::jsonify(){
 	return json;
 }
 
-void PID::storeify(pidentity *pident){
-	if (pident!=NULL) {
-		pident->DeviceID=dev->DeviceID; //deventity name
-		pident->p=Kp;
-		pident->i=Ki;
-		pident->d=Kd;
-		pident->setPoint=setPoint;
-		pident->minStateTimeSecs=minStateTime; // in seconds
-		pident->deadBand=deadBand;
-		pident->PWMScale=PWMScale;
-	}
+pidentity *PID::storeify(){
+	pidentity *pident=(pidentity *)malloc(sizeof(pidentity));
+	pident->DeviceID=dev->DeviceID; //deventity name
+	pident->p=Kp;
+	pident->i=Ki;
+	pident->d=Kd;
+	pident->setPoint=setPoint;
+	pident->minStateTimeSecs=minStateTime; // in seconds
+	pident->deadBand=deadBand;
+	pident->PWMScale=PWMScale;
+	bLink->printDebug("Adding pident:%x:%x:%x:%x:%x:%x:%x",dev->DeviceID,Kp,Ki,Kd,setPoint,minStateTime,deadBand,PWMScale);
+
+	return pident;
 }
 
 
@@ -259,7 +261,7 @@ void PIDs::updatePIDs(){
 PID *PIDs::getPID(char *name){ //PID name is the dev->getName() of the underlying device
 	for(int i=0;i<pidCount;i++) {
 		if (root[i]!=NULL && root[i]->getName()!=NULL) {
-			bLink->printDebug("Looking for |%s| Looking at |%s|",name,root[i]->getName());
+			//bLink->printDebug("Looking for |%s| Looking at |%s|",name,root[i]->getName());
 			if(!strcmp(name,root[i]->getName())){
 				return root[i];
 			}
@@ -284,9 +286,11 @@ PIDSTORObj *PIDs::storeify(){
 	PIDSTORObj *store=new PIDSTORObj(pidCount);
 	store->pidCount=pidCount;
 	for (int i=0;i<pidCount;i++) {
-        pidentity *child=store->pids[i];
-        if (root[i]!=NULL) {
-        	root[i]->storeify(child);
+        if (root[i]!=NULL) { //replace the object
+            free(store->pids[i]);
+        	store->pids[i]=root[i]->storeify();
+        	bLink->printDebug("Added pidentx:%x",store->pids[i]->DeviceID);
+
         }
 	}
 	return store;

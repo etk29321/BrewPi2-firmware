@@ -172,10 +172,10 @@ void OneWireGPIO::setOutput(int value){  //OneWire GPIO's are inverted
 		//bLink->printDebug("Setting GPIO output of 0x%02x%02x%02x%02x%02x%02x%02x%02x",address[0],address[1],address[2],address[3],address[4],address[5],address[6],address[7]);
 #endif
 		//String nameStr=charToString(getName());
-		//syslog.log("Setting GPIO output " + nameStr + " to LOW");
+		//piNet.log("Setting GPIO output " + nameStr + " to LOW");
 		char msgbuf[246];
         sprintf(msgbuf,"Setting GPIO output %s to LOW",getName());
-        syslog.log(msgbuf);
+        piNet.log(msgbuf);
 		owSwitch->channelWrite(pio,LOW);
 #ifndef XCODE
        // bLink->printDebug("GPIO output set to %d",value);
@@ -185,10 +185,10 @@ void OneWireGPIO::setOutput(int value){  //OneWire GPIO's are inverted
         //bLink->printDebug("Setting GPIO output of 0x%02x%02x%02x%02x%02x%02x%02x%02x",address[0],address[1],address[2],address[3],address[4],address[5],address[6],address[7]);
 #endif
 		//String nameStr=charToString(getName());
-		//syslog.log("Setting GPIO output " + nameStr + " to HIGH");
+		//piNet.log("Setting GPIO output " + nameStr + " to HIGH");
 		char msgbuf[246];
         sprintf(msgbuf,"Setting GPIO output %s to HIGH",getName());
-        syslog.log(msgbuf);
+        piNet.log(msgbuf);
         owSwitch->channelWrite(pio,HIGH);
 #ifndef XCODE
        // bLink->printDebug("GPIO output set to %d",value);
@@ -604,6 +604,7 @@ DEVSTORObj *DeviceManager::storeify(){
 
         if (devices[i]!=NULL) {
         	child->DeviceID=i;
+        	devices[i]->DeviceID=i;
         	int namelen=strlen(devices[i]->getName());
         	if (namelen>19) {
         		namelen=19;

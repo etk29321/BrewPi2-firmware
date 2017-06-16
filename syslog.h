@@ -22,7 +22,9 @@ HEADER          = PRI VERSION SP TIMESTAMP SP HOSTNAME
 */
 #ifndef SYSLOG_H
 #define SYSLOG_H
-#include "Brewpi.h"
+//#include "Brewpi.h"
+#include "application.h"
+
 
 const String SYSLOG_EMERG=String("<128>");
 const String  SYSLOG_ALERT= String("<129>");
@@ -41,8 +43,10 @@ const String  SYSLOG_APPNAME= String("BrewPi");
 
 class Syslog{
 public:
-	Syslog(String hostname, IPAddress syslogServer, int syslogPort);
-	void log(String msg);
+    Syslog();
+    Syslog(String hostname, IPAddress syslogServer, int syslogPort);
+    void configure(String hostname, IPAddress syslogServer, int syslogPort);
+    void log(String msg);
 	void log(char *msg);
 	void log(String msgtype, String msg);
 private:
@@ -51,6 +55,7 @@ private:
 	int port;
 	char buf[480]; // RFC 5426 UDP transport for syslog specifies a 480 octet min max datagram size
 	UDP udp;
+	bool configured;
 };
 
 #endif

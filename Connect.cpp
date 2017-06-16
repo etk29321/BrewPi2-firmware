@@ -354,6 +354,7 @@ void Connections::addConnection(Connection *newconn){
             	delConnection(newconn->getName());
             	addConnection(newconn);
             }
+			connCount++;
 		}
 	}
 }
@@ -474,6 +475,7 @@ Connection *Connections::getConnection(int connum){
 	int i=0;
 	while(pos!=NULL && i<connum) {
         pos=pos->next;
+        i++;
 	}
 	return pos;
 }

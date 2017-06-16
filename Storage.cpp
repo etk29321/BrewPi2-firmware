@@ -64,21 +64,30 @@ char *Storage::read() {
 	char *reply=NULL;
 	fstable fs;
 	pos=0;
+	NetworkBlock netconfig;
 
 	//read fstable
 	EEPROM.get(pos,fs);
 
 
-	//read devices
 	pos+=sizeof(fstable);
 	if (fs.devCount==0 || fs.devCount==255) {
 		return NULL; //invalid data in EEPROM
 	}
+
+	//read network config
+	EEPROM.get(pos,netconfig);
+	pos+=sizeof(NetworkBlock);
+	piNet.setConfig(&netconfig);
+
+
+	//read devices
 	DEVSTORObj *devstore=new DEVSTORObj(fs.devCount);
 	for (int i=0;i<fs.devCount;i++) {
 		deventity dev;
 		EEPROM.get(pos,dev);
 		memcpy(devstore->devs[i],&dev,sizeof(deventity));
+    	bLink->printDebug("Reading device:%x (%s) stating at %d",devstore->devs[i]->DeviceID,devstore->devs[i]->Name,pos);
 		pos+=sizeof(deventity);
 
 	}
@@ -92,6 +101,7 @@ char *Storage::read() {
 		pidentity pid;
 		EEPROM.get(pos,pid);
 		memcpy(pidstore->pids[i],&pid,sizeof(pidentity));
+    	bLink->printDebug("Reading pident:%x stating at %d",pidstore->pids[i]->DeviceID,pos);
 		pos+=sizeof(pidentity);
 
 	}
@@ -105,6 +115,7 @@ char *Storage::read() {
 		connentity conn;
 		EEPROM.get(pos,conn);
 		memcpy(connstore->conns[i],&conn,sizeof(connentity));
+    	bLink->printDebug("Writing connent:%x stating at %d",connstore->conns[i]->outdevID,pos);
 		pos+=sizeof(connentity);
 
 	}
@@ -123,22 +134,30 @@ void Storage::apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *con
 	//devices
 	for (int i=0;i<devstore->devCount;i++) {
 		Device *dev;
+
 		switch (devstore->devs[i]->DeviceHardware) {
 	    	case DEVICE_HARDWARE_ONEWIRE_TEMP:
 	    		dev=deviceManager->getDevice(devstore->devs[i]->address);
+
 	    		if (dev!=NULL) {
+			    	bLink->printDebug("Updating temp sensor device:%x (%s)",i,dev->getName());
+
 	    			((OneWireTempSensor *)dev)->setCorF((TempFormat)(devstore->devs[i]->CorF));
 	    		}
 	            break;
 	        case DEVICE_HARDWARE_PIN:
 	    		dev=deviceManager->getHWGPIODevice(devstore->devs[i]->pinpio);
 	    		if (dev!=NULL) {
+			    	bLink->printDebug("Updating HE GPIO device:%x (%s)",i,dev->getName());
+
 	    			((HardwareGPIO *)dev)->setGPIOMode((PinMode)(devstore->devs[i]->gpioMode));
 	    		}
 	            break;
 	        case DEVICE_HARDWARE_ONEWIRE_2413:
 	    		dev=deviceManager->getDevice(devstore->devs[i]->address,devstore->devs[i]->pinpio);
 	    		if (dev!=NULL) {
+			    	bLink->printDebug("Updating OneWire GPIO device:%x (%s)",i,dev->getName());
+
 	    			((OneWireGPIO *)dev)->setGPIOMode((PinMode)(devstore->devs[i]->gpioMode));
 	    		}
 	        	break;
@@ -146,7 +165,8 @@ void Storage::apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *con
 	        	dev=NULL;
 		}
 		if (dev!=NULL) {
-			devstore->devs[i]->DeviceID=dev->DeviceID; //fix up DeviceID to make sure they match the deviceManager ID
+			//devstore->devs[i]->DeviceID=dev->DeviceID; //fix up DeviceID to make sure they match the deviceManager ID
+			dev->DeviceID=devstore->devs[i]->DeviceID; //fix up DeviceID to make sure they match the deviceManager ID
 			dev->setName(devstore->devs[i]->Name);
 			dev->setStrName(String(devstore->devs[i]->Name));
 		}
@@ -155,10 +175,11 @@ void Storage::apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *con
 
 	//pids
 	for (int i=0;i<pidstore->pidCount;i++) {
-		Device *dev=deviceManager->getDevice(devstore->devs[pidstore->pids[i]->DeviceID]->address); //get device by address. PIDs only attach to temp sensors
+		Device *dev=deviceManager->getDevice(pidstore->pids[i]->DeviceID); //get device by address. PIDs only attach to temp sensors
 		if (dev!=NULL) {
 			PID *pid=pids->getPID(dev->getName());
 			if(pid!=NULL) {
+		    	bLink->printDebug("Updating PID:%x (%s)",i,pid->getName());
 				pid->setP(pidstore->pids[i]->p);
 				pid->setI(pidstore->pids[i]->i);
 				pid->setD(pidstore->pids[i]->d);
@@ -180,9 +201,10 @@ void Storage::apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *con
 		switch(connstore->conns[i]->mode) {
 			case PIDCooling:
 			case PIDHeating:
-				dev=deviceManager->getDevice(devstore->devs[connstore->conns[i]->outdevID]->address);
-				piddev=deviceManager->getDevice(devstore->devs[connstore->conns[i]->inPIDdevID]->address);
+				dev=deviceManager->getDevice(connstore->conns[i]->outdevID);
+				piddev=deviceManager->getDevice(connstore->conns[i]->inPIDdevID);
 				if (dev!=NULL && piddev!=NULL) {
+			    	bLink->printDebug("Creating PID Connection:%x (%s)",i,dev->getName());
 					PID *pid=pids->getPID(piddev->getName());
 					if (pid!=NULL) {
 						Connection *conn=new Connection(dev,pid,(PIDState)connstore->conns[i]->Pstate);
@@ -191,17 +213,19 @@ void Storage::apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *con
 				}
 				break;
 			case DevMode:
-				outdev=deviceManager->getDevice(devstore->devs[connstore->conns[i]->outdevID]->address);
-				indev=deviceManager->getDevice(devstore->devs[connstore->conns[i]->indevID]->address);
+				outdev=deviceManager->getDevice(connstore->conns[i]->outdevID);
+				indev=deviceManager->getDevice(connstore->conns[i]->indevID);
 				if (outdev!=NULL && indev!=NULL) {
+			    	bLink->printDebug("Creating Dev Connection:%x (%s)",i,dev->getName());
 					Connection *conn=new Connection(outdev,indev);
 					connections->addConnection(conn);
 				}
 				break;
 			case Custom:
-				outdev=deviceManager->getDevice(devstore->devs[connstore->conns[i]->outdevID]->address);
+				outdev=deviceManager->getDevice(connstore->conns[i]->outdevID);
 				exp=readString(connstore->conns[i]->exp, connstore->conns[i]->explen);
 				if (outdev!=NULL && exp!=NULL) {
+			    	bLink->printDebug("Creating Custom Connection:%x (%s)",i,dev->getName());
 					Connection *conn=new Connection(outdev,exp);
 					connections->addConnection(conn);
 					free(exp);
@@ -223,34 +247,45 @@ char *Storage::write() {
 	char *reply=NULL;
 	DEVSTORObj *devstor=deviceManager->storeify();
 	PIDSTORObj *pidstor=pids->storeify();
+	NetworkBlock *netconfig=piNet.getConfig();
 	fstable fs;
 	fs.devCount=devstor->devCount;
 	fs.pidCount=pidstor->pidCount;
 	fs.connCount=connections->getNumConns();
-	strPos=sizeof(fstable) + sizeof(deventity)*fs.devCount + sizeof(pidentity)*fs.pidCount + sizeof(connentity)*fs.connCount+1;
+	strPos=sizeof(fstable) + sizeof(NetworkBlock) + sizeof(deventity)*fs.devCount + sizeof(pidentity)*fs.pidCount + sizeof(connentity)*fs.connCount+1;
 	pos=0;
 	//write fstable
 	EEPROM.put(pos,fs);
 	pos+=sizeof(fstable);
+	//write network config
+	EEPROM.put(pos,*netconfig);
+	pos+=sizeof(NetworkBlock);
+	free(netconfig);
 	//write devices
 	for (int i=0;i<devstor->devCount;i++) {
 		EEPROM.put(pos,*(devstor->devs[i]));
+    	bLink->printDebug("Writing device:%x (%s) stating at %d",devstor->devs[i]->DeviceID,devstor->devs[i]->Name,pos);
+
 		pos+=sizeof(deventity);
+
 	}
 	//write pids
 	for (int i=0;i<pidstor->pidCount;i++) {
 		EEPROM.put(pos,*(pidstor->pids[i]));
+    	bLink->printDebug("Writing pident:%x stating at %d",pidstor->pids[i]->DeviceID,pos);
+
 		pos+=sizeof(pidentity);
 	}
 	//write connections
 	for (int i=0;i<connections->getNumConns();i++) {
 		connentity connent;
-		connent.outdevID=255;
-		connent.inPIDdevID=255;
-		connent.Pstate=0;
-		connent.indevID=255;
+		connent.outdevID=0xdb;
+		connent.mode=0xdb;
+		connent.indevID=0xdb;
+		connent.inPIDdevID=0xdb;
+		connent.Pstate=0xdb;
 		connent.exp=(uint16_t)EEPROM.length(); //address of expression string
-		connent.explen=0; //length
+		connent.explen=0xdb; //length
 
 		char *exp;
 		Connection *conn=connections->getConnection(i);
@@ -287,6 +322,11 @@ char *Storage::write() {
 					break;
 			}
 			EEPROM.put(pos,connent);
+			JSONObj *json=conn->jsonify();
+			char *str=json->jstringify();
+	    	bLink->printDebug("Writing connent:i=%x devID=%x stating at %d -- %s",i,connent.outdevID,pos,str);
+	    	delete json;
+	    	free(str);
 			pos+=sizeof(connentity);
 		}
 
@@ -333,12 +373,26 @@ char *Storage::readString(int pos, int len) {
 	return str;
 }
 
-void Storage::dump(){
-	char line[256];
+void Storage::clear(){
 	for(int i=0;i<EEPROM.length();i++) {
-		for(int l=0;l<256;l++) {
-			line[l]=EEPROM.read(i);
+		EEPROM.write(i,0xFF);
+	}
+}
+
+void Storage::dump(){
+	char line[128];
+	int l=0;
+	uint8_t val;
+	for(int i=0;i<EEPROM.length();i++) {
+		val=EEPROM.read(i);
+		char *str=&(line[l]);
+		sprintf(str,"%0x ",val);
+		bLink->printDebug("%d: %0x",i,val);
+
+		l+=3;
+		if(l>=128) {
+			l=0;
+			bLink->printDebug("%d: %s",i,line);
 		}
-		bLink->printDebug("%",line);
 	}
 }

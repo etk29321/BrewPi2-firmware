@@ -32,7 +32,7 @@ typedef struct deventity {
 	uint8_t DeviceHardware; // enum, 2 bits
 	uint8_t pinpio; // gpio 1wire pio or hw pin, enum, 2 bits
 	uint8_t gpioMode; //all gpio's, enum, 2 bits
-} deventity; //29 bytes per dev (26min)  338 total  - 3 per io board    g, f1, f2  = 348
+} deventity; //33 bytes per dev (26min)  338 total  - 3 per io board    g, f1, f2  = 348
 
 
 class DEVSTORObj {
@@ -45,13 +45,13 @@ public:
 
 typedef struct pidentity {
 	uint8_t DeviceID; //deventity name
-    uint8_t p;
-    uint8_t i;
-    uint8_t d;
-    uint8_t setPoint;
-    uint8_t minStateTimeSecs; // in seconds
-    uint8_t deadBand;
-    uint8_t PWMScale;
+	double p;
+	double i;
+	double d;
+	double setPoint;
+	unsigned long minStateTimeSecs; // in seconds
+	double deadBand;
+	double PWMScale;
 } pidentity; //8 bytes per pid 24 total - 3 PIDs
 
 
@@ -72,7 +72,7 @@ typedef struct connentity {
 	uint8_t Pstate;
 	uint16_t exp; //address of expression string
 	uint8_t explen; //length of the exp string
-} connentity; //5 bytes per connection 30 total
+} connentity; //8 bytes per connection 30 total
 
 
 class CONNSTORObj {
@@ -90,6 +90,7 @@ public:
 	char *read();
 	char *write();
 	void dump(); //dump EEPROM to debug console
+	void clear();
 	int writeString(char *str, int pos);
 	char *readString(int pos, int len);
 	void apply(DEVSTORObj *devstore, PIDSTORObj *pidstore, CONNSTORObj *connstore);
@@ -130,5 +131,16 @@ private:
 
 				 */
 
+typedef struct NetworkBlock {
+    uint8_t useDHCP;
+    uint32_t ipAddress;
+    uint32_t netmask;
+    uint32_t gateway;
+    uint32_t dnsServer;
+    char hostname[64]; // 63-characters is the max length of a hostname in the mdns lib (label.h)
+    uint8_t enableSyslog;
+    uint32_t syslogServer;
+    uint16_t syslogPort;
+} NetworkBlock;
 
 #endif

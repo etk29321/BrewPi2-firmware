@@ -226,7 +226,7 @@ void BrewLink::printDebug(const char *format, ...) {
 	va_start(args,format);
 	int sizeneeded=vsnprintf(buf,2048,format,args);
 	Serial.println(buf);
-	syslog.log(buf);
+	piNet.log(buf);
 	Serial.flush(); //wait for buffers to flush.  We want to make sure debug gets printed before a possible crash
 	if (sizeneeded>2047){
 		printDebug("Error: Serial Buffer Overflow.  Buffer is %d, String was %d characters",2048,sizeneeded);
@@ -249,13 +249,17 @@ char *BrewLink::processCmd(char *cmd) {
 	//JSONElement *jsonel;
 	switch (*cmd) {
 	case 'i':
-		localIP = WiFi.localIP();
+		/*localIP = WiFi.localIP();
 		WiFi.macAddress(mac);
 		reply=(char *)malloc(sizeof(char)*(strlen(cmd)+45));
 //			           0         1         2         3         4
 //			           01234567890123456789012345678901234567890
 //		               IP:255.255.255.255 MAC: ff:ff:ff:ff:ff:ff
 		sprintf(reply,"IP:%d.%d.%d.%d MAC: %0x:%0x:%0x:%0x:%0x:%0x",localIP[0],localIP[1],localIP[2],localIP[3],mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+*/
+
+		reply=cmdNetwork(cmd);
+
 		break;
 	case 'd':  //perform device search or update devices
 		reply=cmdDeviceSearch(cmd);
@@ -277,6 +281,7 @@ char *BrewLink::processCmd(char *cmd) {
 		break;
 	case 'w':
 		//EEPROM.clear();  //not avail in 0.4.6
+		storage->clear();
 		reply=storage->write();
 		break;
 	case 'r':
@@ -285,7 +290,11 @@ char *BrewLink::processCmd(char *cmd) {
 	case 'e':
 		reply=NULL;
 		storage->dump();
+		break;
 	case 'x':
+	case 'f':
+		System.dfu();
+		break;
 		//singleClient.flush();
 		//singleClient.stop();
 		break;
@@ -327,6 +336,10 @@ char *BrewLink::cmdDeviceSearch(char *cmd){
 						if(dev!=NULL) {
 							JSONObj * devupdate=jsonel->getValueAsObj();
 							if (devupdate!=NULL) {
+								reply=(char *)malloc(sizeof(char)*(strlen(jsonel->getName())+16));
+								//			   0         1         2         3         4
+								//			   01234567890123456789012345678901234567890
+								sprintf(reply,"Debice Updated: %s",jsonel->getName());
 								bLink->printDebug("Setting Device Name");
 								jsonel=devupdate->getElement("Name");
 								if (jsonel!=NULL) {
@@ -639,3 +652,20 @@ char *BrewLink::cmdPIDs(char *cmd) {
 	return reply;
 }
 
+char *BrewLink::cmdNetwork(char *cmd){
+	char *reply;
+	JSONObj *json;
+	char *jsontxt=cmd;
+	jsontxt++;
+	if(*jsontxt!='\0') {
+		json=new JSONObj(jsontxt);
+		if (json!=NULL) {
+			piNet.setConfig(json);
+		}
+		delete json;
+	}
+	json=piNet.jsonify();
+	reply=json->jstringify();
+	delete json;
+	return reply;
+}

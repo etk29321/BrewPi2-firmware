@@ -40,6 +40,7 @@ public:
 	char *cmdSet(char *cmd);
 	char *cmdConn(char *cmd);
 	char *cmdPIDs(char *cmd);
+	char *cmdNetwork(char *cmd);
 private:
 	//Photon has a global 'Serial' which we'll use instead of a private var here for serial communications
 	TCPServer *wifiserver; //we'll also listen for clients on wifi
