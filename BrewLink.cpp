@@ -327,9 +327,11 @@ char *BrewLink::cmdDeviceSearch(char *cmd){
 						bLink->printDebug("Looping...:%s",arrayel->jstringify());
 						delay(1000);
 						JSONObj *conncmd=arrayel->getValueAsObj();
+						if (conncmd!=NULL) {
 						bLink->printDebug("conncmd:%s",conncmd->jstringify());
 						delay(1000);
 						jsonel=conncmd->getFirstElement();
+						if (jsonel!=NULL) {
 						bLink->printDebug("Getting device %s", jsonel->getName());
 						delay(1000);
 						Device *dev=deviceManager->getDevice(jsonel->getName());
@@ -339,7 +341,7 @@ char *BrewLink::cmdDeviceSearch(char *cmd){
 								reply=(char *)malloc(sizeof(char)*(strlen(jsonel->getName())+16));
 								//			   0         1         2         3         4
 								//			   01234567890123456789012345678901234567890
-								sprintf(reply,"Debice Updated: %s",jsonel->getName());
+								sprintf(reply,"Device Updated: %s",jsonel->getName());
 								bLink->printDebug("Setting Device Name");
 								jsonel=devupdate->getElement("Name");
 								if (jsonel!=NULL) {
@@ -377,6 +379,8 @@ char *BrewLink::cmdDeviceSearch(char *cmd){
 								}
 
 							}
+						}
+						}
 						}
 					}
 				}else {

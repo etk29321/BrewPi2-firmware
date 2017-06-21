@@ -2,6 +2,7 @@
 d{"Devices":[{"28a1da7f08000081":{"Name":"Ferm1","CorF":1}}]}
 d{"Devices":[{"3a1b0c21000000e20":{"Name":"GlycolFerm1","gpioMode":1}}]}
 d{"Devices":[{"3a1b0c21000000e21":{"Name":"HeatFerm1","gpioMode":1}}]}
+d{"Devices":[{"28a1da7f08000081":{"Name":"Garage"}}]}
 
 p{"PIDs": [{"Ferm1":{"Kp":5.00,"Ki":0.25,"Kd":1.50,"setPoint":100.00,"minStateTime":120,"deadBand":0.5,"PWMScale":1.00}}]}
 
