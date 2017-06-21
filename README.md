@@ -2,14 +2,14 @@
 
 ## Building
 
-The BrewPi2 firmware is currently built against particle photon firmware version 0.4.6.1 ('latest' branch).  Particle
- firmware can be found [here](https://github.com/spark/firmware/releases/tag/v0.4.6.1).  Make sure to upgrade your base firmware before
+The BrewPi2 firmware is currently built against particle photon firmware version 0.6.2 ('latest' branch).  Particle
+ firmware can be found [here](https://github.com/spark/firmware/releases/tag/v0.6.2).  Make sure to upgrade your base firmware before
  installing this application firmware as per the "Updating System Firmware" instructions on the particle github page.
  
  1. Download particle firmware and untar
  2. Configure gcc-arm as per the instructions on the particle github
- 3. Clone this repo into firmware-0.4.6.1/user/application/brewpi2
- 4. cd to firmware-0.4.6.1/main
+ 3. Clone this repo into firmware-0.6.2/user/application/brewpi2
+ 4. cd to firmware-0.6.2/main
  5. Issue make command 
  
      make APP=brewpi2 PLATFORM=photon
