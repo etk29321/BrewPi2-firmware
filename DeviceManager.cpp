@@ -68,6 +68,12 @@ void OneWireTempSensor::setOutput(int value){
 	return;
 }
 
+void OneWireTempSensor::setCorF(TempFormat newCorF){
+	CorF=newCorF;
+	return;
+}
+
+
 JSONObj *OneWireTempSensor::jsonify(){ //prints the defintion of this object in JSON format
 	JSONObj *json=new JSONObj();
 	//bLink->printDebug("OneWire Temp");
@@ -166,10 +172,10 @@ void OneWireGPIO::setOutput(int value){  //OneWire GPIO's are inverted
 		//bLink->printDebug("Setting GPIO output of 0x%02x%02x%02x%02x%02x%02x%02x%02x",address[0],address[1],address[2],address[3],address[4],address[5],address[6],address[7]);
 #endif
 		//String nameStr=charToString(getName());
-		//syslog.log("Setting GPIO output " + nameStr + " to LOW");
+		//piNet.log("Setting GPIO output " + nameStr + " to LOW");
 		char msgbuf[246];
         sprintf(msgbuf,"Setting GPIO output %s to LOW",getName());
-        syslog.log(msgbuf);
+        piNet.log(msgbuf);
 		owSwitch->channelWrite(pio,LOW);
 #ifndef XCODE
        // bLink->printDebug("GPIO output set to %d",value);
@@ -179,10 +185,10 @@ void OneWireGPIO::setOutput(int value){  //OneWire GPIO's are inverted
         //bLink->printDebug("Setting GPIO output of 0x%02x%02x%02x%02x%02x%02x%02x%02x",address[0],address[1],address[2],address[3],address[4],address[5],address[6],address[7]);
 #endif
 		//String nameStr=charToString(getName());
-		//syslog.log("Setting GPIO output " + nameStr + " to HIGH");
+		//piNet.log("Setting GPIO output " + nameStr + " to HIGH");
 		char msgbuf[246];
         sprintf(msgbuf,"Setting GPIO output %s to HIGH",getName());
-        syslog.log(msgbuf);
+        piNet.log(msgbuf);
         owSwitch->channelWrite(pio,HIGH);
 #ifndef XCODE
        // bLink->printDebug("GPIO output set to %d",value);
@@ -313,7 +319,8 @@ JSONObj *HardwareGPIO::jsonify(){
  * Device
  *
  *****************************************************************************/
-Device::Device(DeviceHardware dH){
+Device::Device(uint8_t DevID, DeviceHardware dH){
+	DeviceID=DevID;
 	devHardware=dH;
 	switch(dH) {  //set devType based on devHardware
 	case DEVICE_HARDWARE_ONEWIRE_TEMP:
@@ -469,7 +476,61 @@ Device *DeviceManager::getDevice(int id){
 	}
 }
 
+Device *DeviceManager::getDevice(uint8_t *addr){
+	if (devices!=NULL && addr!=NULL) {
+		for (int i=0;i<devCount;i++) {
+			switch(devices[i]->getDeviceHardware()) {
+				case DEVICE_HARDWARE_ONEWIRE_TEMP:
+					if (((OneWireTempSensor *)devices[i])->matchAddress(addr)) {
+						return devices[i];
+					}
+					break;
+				case DEVICE_HARDWARE_ONEWIRE_2413:
+					if (((OneWireGPIO *)devices[i])->matchAddress(addr)) {
+						return devices[i];
+					}
+					break;
+			}
+		}
+	}
+	return NULL; //no such device name found
+}
 
+Device *DeviceManager::getDevice(uint8_t *addr, uint8_t pio){
+	if (devices!=NULL && addr!=NULL) {
+		for (int i=0;i<devCount;i++) {
+			switch(devices[i]->getDeviceHardware()) {
+				case DEVICE_HARDWARE_ONEWIRE_TEMP:
+					if (((OneWireTempSensor *)devices[i])->matchAddress(addr)) {
+						return devices[i];
+					}
+					break;
+				case DEVICE_HARDWARE_ONEWIRE_2413:
+					if (((OneWireGPIO *)devices[i])->matchAddress(addr) && (((OneWireGPIO *)devices[i])->getPin()==pio)) {
+						return devices[i];
+					}
+					break;
+			}
+		}
+	}
+	return NULL; //no such device name found
+}
+
+Device *DeviceManager::getHWGPIODevice(int pin){
+	if (devices!=NULL) {
+		for (int i=0;i<devCount;i++) {
+			switch(devices[i]->getDeviceHardware()) {
+				case DEVICE_HARDWARE_PIN:
+					if (((HardwareGPIO *)devices[i])->getPin()==pin) {
+						return devices[i];
+					}
+					break;
+
+			}
+		}
+	}
+	return NULL; //no such device name found
+}
 
 DeviceManager::~DeviceManager() {
 	if(devices!=NULL) {
@@ -535,6 +596,54 @@ JSONObj *DeviceManager::jsonify(){
 	return json;
 }
 
+DEVSTORObj *DeviceManager::storeify(){
+	DEVSTORObj *store=new DEVSTORObj(devCount);
+	store->devCount=devCount;
+	for (int i=0;i<devCount;i++) {
+        deventity *child=store->devs[i];
+
+        if (devices[i]!=NULL) {
+        	child->DeviceID=i;
+        	devices[i]->DeviceID=i;
+        	int namelen=strlen(devices[i]->getName());
+        	if (namelen>19) {
+        		namelen=19;
+        	}
+        	memcpy(child->Name,devices[i]->getName(),namelen); //copy name, up to 16 chars
+        	child->Name[namelen]='\0'; //ensure string is null terminated
+			child->CorF=1; //temp format single bit
+			child->DeviceHardware=devices[i]->getDeviceHardware(); // enum, 2 bits
+			switch(devices[i]->getDeviceHardware()) {
+            	case DEVICE_HARDWARE_PIN:
+        			child->pinpio=((HardwareGPIO *)devices[i])->getPin(); // gpio 1wire pio or hw pin, enum, 2 bits
+        			child->gpioMode=((HardwareGPIO *)devices[i])->getGPIOMode(); //all gpio's, enum, 2 bits
+        			break;
+            	case DEVICE_HARDWARE_ONEWIRE_2413:
+        			child->pinpio=((OneWireGPIO *)devices[i])->getPin(); // gpio 1wire pio or hw pin, enum, 2 bits
+        			child->gpioMode=((OneWireGPIO *)devices[i])->getGPIOMode(); //all gpio's, enum, 2 bits
+                	memcpy(child->address,((OneWireGPIO *)devices[i])->getAddress(),8); //copy one-wire address
+        			break;
+            	case DEVICE_HARDWARE_ONEWIRE_TEMP:
+                	memcpy(child->address,((OneWireTempSensor *)devices[i])->getAddress(),8); //copy one-wire address
+            	default:
+        			child->pinpio=2; // gpio 1wire pio or hw pin, enum, 2 bits
+        			child->gpioMode=0; //all gpio's, enum, 2 bits
+            		break;
+			}
+        } else {
+           	child->DeviceID=i;
+            	memcpy(child->Name,"UNKNOWN",7); //copy name, up to 16 chars
+            	child->Name[7]='\0';
+            	memcpy(child->address,"00000000",8); //copy one-wire address
+    			child->CorF=1; //temp format single bit
+    			child->DeviceHardware=0; // enum, 2 bits
+            	child->pinpio=2; // gpio 1wire pio or hw pin, enum, 2 bits
+            	child->gpioMode=0; //all gpio's, enum, 2 bits
+        }
+    }
+	return store;
+}
+
 JSONObj *DeviceManager::status(){
 	JSONObj *json=new JSONObj();
 
@@ -562,6 +671,7 @@ char *DeviceManager::deviceSearch() {
 	char *retbuf;
 	oneWireBus->reset_search(); //ensure we start at the beginning
 	uint8_t address[8]; //addresses come in 8-byte arrays
+	int i=0;
 	while (oneWireBus->search(address)) {
 		switch (address[0]) {
 		case DS18B20MODEL:
@@ -569,7 +679,7 @@ char *DeviceManager::deviceSearch() {
 		case DS1825MODEL:
 			bLink->printDebug("Found OneWire Temp Sensor");
 
-			temp=new OneWireTempSensor();
+			temp=new OneWireTempSensor(i);
 			temp->init(sensor,address);
 			//temp->setName("Temp");
 			//json=temp->jsonify();
@@ -580,7 +690,7 @@ char *DeviceManager::deviceSearch() {
 			addDevice(temp);
 			break;
 		case DS2413_FAMILY_ID:
-			owgpio=new OneWireGPIO();
+			owgpio=new OneWireGPIO(i);
 			owgpio->init(oneWireBus,address,PIOA);
 			//owgpio->setName("OneWire PIOA");
 
@@ -591,7 +701,7 @@ char *DeviceManager::deviceSearch() {
 			//free(retbuf);
 
 			addDevice(owgpio);
-			owgpio=new OneWireGPIO();
+			owgpio=new OneWireGPIO(i);
 			owgpio->init(oneWireBus,address,PIOB);
 			//owgpio->setName("OneWire PIOB");
 
@@ -604,30 +714,31 @@ char *DeviceManager::deviceSearch() {
 			addDevice(owgpio);
 			break;
 		}
+		i++;
 	}
 
 	bLink->printDebug("Adding hardware GPIO");
 delay(1000);
 	// Hardware GPIOs.  These are predefined for Photon
-	hwgpio=new HardwareGPIO();
+	hwgpio=new HardwareGPIO(i);
 	hwgpio->init(actuatorPin0);
 	bLink->printDebug("added PIN %d",hwgpio->getPin());
 	//hwgpio->setName("actuatorPin0");
 	addDevice(hwgpio);
 
-	hwgpio=new HardwareGPIO();
+	hwgpio=new HardwareGPIO(i);
 	hwgpio->init(actuatorPin1);
 	bLink->printDebug("added PIN %d",hwgpio->getPin());
 	//hwgpio->setName("actuatorPin1");
 	addDevice(hwgpio);
 
-	hwgpio=new HardwareGPIO();
+	hwgpio=new HardwareGPIO(i);
 	hwgpio->init(actuatorPin2);
 	bLink->printDebug("added PIN %d",hwgpio->getPin());
 	//hwgpio->setName("actuatorPin2");
 	addDevice(hwgpio);
 
-	hwgpio=new HardwareGPIO();
+	hwgpio=new HardwareGPIO(i);
 	hwgpio->init(actuatorPin3);
 	bLink->printDebug("added PIN %d",hwgpio->getPin());
 	//hwgpio->setName("actuatorPin3");

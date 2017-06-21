@@ -29,6 +29,27 @@ void PID::setSetPoint(double newtemp) {
 	setPoint=newtemp;
 }
 
+
+void PID::setP(double newP){
+	Kp=newP;
+}
+void PID::setI(double newI){
+	Ki=newI;
+}
+void PID::setD(double newD){
+	Kd=newD;
+}
+void PID::setMinStateTime(unsigned long newMinStateTime){
+	minStateTime=newMinStateTime;
+}
+void PID::setDeadBand(double newBand){
+	deadBand=newBand;
+}
+void PID::setPWMScale(double newScale){
+	PWMScale=newScale;
+}
+
+
 char *PID::getName(){
 	if(dev!=NULL) {
 		return dev->getName();
@@ -58,10 +79,10 @@ void PID::update(){
 		state=IDLE;
 		//String strName=getStrName();
 		//String msg=String("PID" + strName+ " changed to IDLE.");
-		//syslog.log(msg);
+		//piNet.log(msg);
 		char msgbuf[246];
         sprintf(msgbuf,"PID %s changed to IDLE",getName());
-        syslog.log(msgbuf);
+        piNet.log(msgbuf);
 		lastStateChange=stime;
 		PIDvalue=0;
 		I=0;
@@ -70,10 +91,10 @@ void PID::update(){
 			state=IDLE;
 			//String strName=getStrName();
 			//String msg=String("PID" + strName+ " changed to IDLE.");
-			//syslog.log(msg);
+			//piNet.log(msg);
 			char msgbuf[246];
 	        sprintf(msgbuf,"PID %s changed to IDLE",getName());
-	        syslog.log(msgbuf);
+	        piNet.log(msgbuf);
 			lastStateChange=stime;
 			PIDvalue=0;
 			I=0;
@@ -83,20 +104,20 @@ void PID::update(){
 					state=HEATING;
 					//String strName=getStrName();
 					//String msg=String("PID" + strName+ " changed to HEATING.");
-					//syslog.log(msg);
+					//piNet.log(msg);
 					char msgbuf[246];
 			        sprintf(msgbuf,"PID %s changed to HEATING",getName());
-			        syslog.log(msgbuf);
+			        piNet.log(msgbuf);
 					lastStateChange=stime;
 
 				} else {
 					state=COOLING;
 					//String strName=getStrName();
 					//String msg=String("PID" + strName+ " changed to COOLING.");
-					//syslog.log(msg);
+					//piNet.log(msg);
 					char msgbuf[246];
 			        sprintf(msgbuf,"PID %s changed to COOLING",getName());
-			        syslog.log(msgbuf);
+			        piNet.log(msgbuf);
 					lastStateChange=stime;
 
 				}
@@ -143,6 +164,10 @@ uint8_t PID::PWMDutyCycle(){
 	return (abs((int)PIDvalue)*PWMScale);
 }
 
+Device *PID::getDevice(){
+	return dev;
+}
+
 JSONObj *PID::jsonify(){
 	JSONObj *json=new JSONObj();
 	json->addElement("Sensor",dev->getName());
@@ -162,6 +187,21 @@ JSONObj *PID::jsonify(){
 	json->addElement("PWMScale",PWMScale);
 	json->addElement("PWMDutyCycle",PWMDutyCycle());
 	return json;
+}
+
+pidentity *PID::storeify(){
+	pidentity *pident=(pidentity *)malloc(sizeof(pidentity));
+	pident->DeviceID=dev->DeviceID; //deventity name
+	pident->p=Kp;
+	pident->i=Ki;
+	pident->d=Kd;
+	pident->setPoint=setPoint;
+	pident->minStateTimeSecs=minStateTime; // in seconds
+	pident->deadBand=deadBand;
+	pident->PWMScale=PWMScale;
+	bLink->printDebug("Adding pident:%x:%x:%x:%x:%x:%x:%x",dev->DeviceID,Kp,Ki,Kd,setPoint,minStateTime,deadBand,PWMScale);
+
+	return pident;
 }
 
 
@@ -221,6 +261,7 @@ void PIDs::updatePIDs(){
 PID *PIDs::getPID(char *name){ //PID name is the dev->getName() of the underlying device
 	for(int i=0;i<pidCount;i++) {
 		if (root[i]!=NULL && root[i]->getName()!=NULL) {
+			//bLink->printDebug("Looking for |%s| Looking at |%s|",name,root[i]->getName());
 			if(!strcmp(name,root[i]->getName())){
 				return root[i];
 			}
@@ -239,6 +280,20 @@ JSONObj *PIDs::jsonify(){
 	}
 	json->addElement("PIDs",jsonarray);
 	return json;
+}
+
+PIDSTORObj *PIDs::storeify(){
+	PIDSTORObj *store=new PIDSTORObj(pidCount);
+	store->pidCount=pidCount;
+	for (int i=0;i<pidCount;i++) {
+        if (root[i]!=NULL) { //replace the object
+            free(store->pids[i]);
+        	store->pids[i]=root[i]->storeify();
+        	bLink->printDebug("Added pidentx:%x",store->pids[i]->DeviceID);
+
+        }
+	}
+	return store;
 }
 
 

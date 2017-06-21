@@ -226,7 +226,7 @@ void BrewLink::printDebug(const char *format, ...) {
 	va_start(args,format);
 	int sizeneeded=vsnprintf(buf,2048,format,args);
 	Serial.println(buf);
-	syslog.log(buf);
+	piNet.log(buf);
 	Serial.flush(); //wait for buffers to flush.  We want to make sure debug gets printed before a possible crash
 	if (sizeneeded>2047){
 		printDebug("Error: Serial Buffer Overflow.  Buffer is %d, String was %d characters",2048,sizeneeded);
@@ -245,29 +245,27 @@ char *BrewLink::processCmd(char *cmd) {
 	printDebug("Recieved command: %s",cmd);
 	IPAddress localIP;
 	byte mac[6];
-	JSONObj *json;
+	//JSONObj *json;
 	//JSONElement *jsonel;
 	switch (*cmd) {
 	case 'i':
-		localIP = WiFi.localIP();
+		/*localIP = WiFi.localIP();
 		WiFi.macAddress(mac);
 		reply=(char *)malloc(sizeof(char)*(strlen(cmd)+45));
 //			           0         1         2         3         4
 //			           01234567890123456789012345678901234567890
 //		               IP:255.255.255.255 MAC: ff:ff:ff:ff:ff:ff
 		sprintf(reply,"IP:%d.%d.%d.%d MAC: %0x:%0x:%0x:%0x:%0x:%0x",localIP[0],localIP[1],localIP[2],localIP[3],mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+*/
+
+		reply=cmdNetwork(cmd);
+
 		break;
-	case 'd':  //perform device search
-		reply=cmdDeviceSearch();
+	case 'd':  //perform device search or update devices
+		reply=cmdDeviceSearch(cmd);
 		break;
-	case 'p': // list all PIDs
-		json=pids->jsonify();
-		if (json!=NULL) {
-			reply=json->jstringify();
-			delete json;
-		} else {
-			reply=NULL;
-		}
+	case 'p': // list all PIDs or update PIDs
+		reply=cmdPIDs(cmd);
 		break;
 	case 'c': // list all connections
 		reply=cmdConn(cmd);
@@ -281,7 +279,22 @@ char *BrewLink::processCmd(char *cmd) {
 	case 't': // toggle GPIO
 		reply=cmdToggle(cmd);
 		break;
+	case 'w':
+		//EEPROM.clear();  //not avail in 0.4.6
+		storage->clear();
+		reply=storage->write();
+		break;
+	case 'r':
+		reply=storage->read();
+		break;
+	case 'e':
+		reply=NULL;
+		storage->dump();
+		break;
 	case 'x':
+	case 'f':
+		System.dfu();
+		break;
 		//singleClient.flush();
 		//singleClient.stop();
 		break;
@@ -294,16 +307,109 @@ char *BrewLink::processCmd(char *cmd) {
 	return reply;
 }
 
-char *BrewLink::cmdDeviceSearch(){
-	char *reply=deviceManager->deviceSearch();
-	if (reply==NULL) {
-		reply=(char *)malloc(sizeof(char)*40);
-//			               0         1         2         3         4
-//			               01234567890123456789012345678901234567890
-		sprintf(reply,"Device manager returned no results");
+char *BrewLink::cmdDeviceSearch(char *cmd){
+		JSONObj *json;
+		char *reply=NULL;
+		char *jsontxt=cmd;
+		jsontxt++;
+		if(*jsontxt!='\0') {
+		json=new JSONObj(jsontxt);
+		// {"Devices":["28a1da7f08000081":{"Name":"Ferm1","CorF":1}]}
 
-	}
-	return reply;
+		if (json!=NULL) { // then we got some change orders to process
+			JSONElement *jsonel=json->getFirstElement();
+			if (jsonel!=NULL) {
+				JSONArray *jsonarray=jsonel->getValueAsArray();
+				if(jsonarray!=NULL) {
+					JSONArrayElement *arrayel=NULL;
+					bLink->printDebug("Looping Through Device Array :%s", jsonarray->jstringify());
+					while(jsonarray->getNextElement(&arrayel)) {
+						bLink->printDebug("Looping...:%s",arrayel->jstringify());
+						delay(1000);
+						JSONObj *conncmd=arrayel->getValueAsObj();
+						if (conncmd!=NULL) {
+						bLink->printDebug("conncmd:%s",conncmd->jstringify());
+						delay(1000);
+						jsonel=conncmd->getFirstElement();
+						if (jsonel!=NULL) {
+						bLink->printDebug("Getting device %s", jsonel->getName());
+						delay(1000);
+						Device *dev=deviceManager->getDevice(jsonel->getName());
+						if(dev!=NULL) {
+							JSONObj * devupdate=jsonel->getValueAsObj();
+							if (devupdate!=NULL) {
+								reply=(char *)malloc(sizeof(char)*(strlen(jsonel->getName())+16));
+								//			   0         1         2         3         4
+								//			   01234567890123456789012345678901234567890
+								sprintf(reply,"Device Updated: %s",jsonel->getName());
+								bLink->printDebug("Setting Device Name");
+								jsonel=devupdate->getElement("Name");
+								if (jsonel!=NULL) {
+									dev->setName(jsonel->getValue());
+									dev->setStrName(String(jsonel->getValue()));
+								}
+								switch(dev->getDeviceHardware()) {
+									case DEVICE_HARDWARE_ONEWIRE_TEMP:
+										//CorF
+										bLink->printDebug("Setting Device CorF");
+
+										jsonel=devupdate->getElement("CorF");
+										if (jsonel!=NULL) {
+											((OneWireTempSensor *)dev)->setCorF((TempFormat)strtod(jsonel->getValue(),NULL));
+										}
+										break;
+									case DEVICE_HARDWARE_PIN:
+										//gpioMode
+										bLink->printDebug("Setting Device gpioMode (HW)");
+
+										jsonel=devupdate->getElement("gpioMode");
+										if (jsonel!=NULL) {
+											((HardwareGPIO *)dev)->setGPIOMode((PinMode)strtod(jsonel->getValue(),NULL));
+										}
+										break;
+									case DEVICE_HARDWARE_ONEWIRE_2413:
+										//gpioMode
+										bLink->printDebug("Setting Device gpioMode (OneWire)");
+
+										jsonel=devupdate->getElement("gpioMode");
+										if (jsonel!=NULL) {
+											((OneWireGPIO *)dev)->setGPIOMode((PinMode)strtod(jsonel->getValue(),NULL));
+										}
+										break;
+								}
+
+							}
+						}
+						}
+						}
+					}
+				}else {
+					reply=(char *)malloc(sizeof(char)*(strlen(cmd)+30));
+			//			           0         1         2         3         4
+			//			           01234567890123456789012345678901234567890
+					sprintf(reply,"Unable to parse command: %s",cmd);
+				}
+			}else {
+				reply=(char *)malloc(sizeof(char)*(strlen(cmd)+30));
+		//			           0         1         2         3         4
+		//			           01234567890123456789012345678901234567890
+				sprintf(reply,"Unable to parse command: %s",cmd);
+			}
+		}
+		delete json;
+		}
+		if(reply==NULL) {
+			reply=deviceManager->deviceSearch();
+			if (reply==NULL) {
+				reply=(char *)malloc(sizeof(char)*40);
+		//			               0         1         2         3         4
+		//			               01234567890123456789012345678901234567890
+				sprintf(reply,"Device manager returned no results");
+
+			}
+		}
+		return reply;
+
 }
 
 char *BrewLink::cmdStatus(){
@@ -383,6 +489,7 @@ char *BrewLink::cmdSet(char *cmd){
 			//delay(1000);
 			if (temppid!=NULL) {
 				temppid->setSetPoint(strtod(jsonel->getValue(),NULL));
+				/* old hard coded in EEPROM config writes
 				if (!strcmp(jsonel->getName(),"Fermenter1")) {
 					EEPROM.write(0,(uint8_t)strtod(jsonel->getValue(),NULL));
 				}
@@ -392,6 +499,7 @@ char *BrewLink::cmdSet(char *cmd){
 				if (!strcmp(jsonel->getName(),"Glycol")) {
 					EEPROM.write(2,(uint8_t)strtod(jsonel->getValue(),NULL));
 				}
+				*/
 				//printDebug("setSetpoint");
 				//delay(1000);
 				reply=(char *)malloc(sizeof(char)*(15+strlen(jsonel->getName())+strlen(jsonel->getValue())));
@@ -465,5 +573,103 @@ char *BrewLink::cmdConn(char *cmd) {
 		reply=json->jstringify();
 		delete json;
 	}
+	return reply;
+}
+
+
+char *BrewLink::cmdPIDs(char *cmd) {
+	JSONObj *json;
+	char *reply=NULL;
+	char *jsontxt=cmd;
+	jsontxt++;
+	if(*jsontxt!='\0') {
+	json=new JSONObj(jsontxt);
+	if (json!=NULL) { // then we got some change orders to process
+		JSONElement *jsonel=json->getFirstElement();
+		if (jsonel!=NULL) {
+			JSONArray *jsonarray=jsonel->getValueAsArray();
+			if(jsonarray!=NULL) {
+				JSONArrayElement *arrayel=NULL;
+				while(jsonarray->getNextElement(&arrayel)) {
+					JSONObj *conncmd=arrayel->getValueAsObj();
+					jsonel=conncmd->getFirstElement();
+					PID *pid=pids->getPID(jsonel->getName());
+					//"Ferm1":{"Kp":5.00,"Ki":0.25,"Kd":1.50,"setPoint":100.00,"minStateTime":120,"deadBand":0.5,"PWMScale":1.00},
+					if(pid!=NULL) {
+						JSONObj * pidupdate=jsonel->getValueAsObj();
+						if (pidupdate!=NULL) {
+							bLink->printDebug("pidupdate:%s", pidupdate->jstringify());
+							jsonel=pidupdate->getElement("Kp");
+							if (jsonel!=NULL) {
+								pid->setP(strtod(jsonel->getValue(),NULL));
+							}
+							jsonel=pidupdate->getElement("Ki");
+							if (jsonel!=NULL) {
+								bLink->printDebug("setI:%s", jsonel->jstringify());
+								pid->setI(strtod(jsonel->getValue(),NULL));
+							}
+							jsonel=pidupdate->getElement("Kd");
+							if (jsonel!=NULL) {
+								pid->setD(strtod(jsonel->getValue(),NULL));
+							}
+							jsonel=pidupdate->getElement("setPoint");
+							if (jsonel!=NULL) {
+								pid->setSetPoint(strtod(jsonel->getValue(),NULL));
+							}
+							jsonel=pidupdate->getElement("minStateTime");
+							if (jsonel!=NULL) {
+								pid->setMinStateTime(strtod(jsonel->getValue(),NULL));
+							}
+							jsonel=pidupdate->getElement("deadBand");
+							if (jsonel!=NULL) {
+								pid->setDeadBand(strtod(jsonel->getValue(),NULL));
+							}
+							jsonel=pidupdate->getElement("PWMScale");
+							if (jsonel!=NULL) {
+								pid->setPWMScale(strtod(jsonel->getValue(),NULL));
+							}
+						}
+					}
+				}
+			}else {
+				reply=(char *)malloc(sizeof(char)*(strlen(cmd)+30));
+		//			           0         1         2         3         4
+		//			           01234567890123456789012345678901234567890
+				sprintf(reply,"Unable to parse command: %s",cmd);
+			}
+		}else {
+			reply=(char *)malloc(sizeof(char)*(strlen(cmd)+30));
+	//			           0         1         2         3         4
+	//			           01234567890123456789012345678901234567890
+			sprintf(reply,"Unable to parse command: %s",cmd);
+		}
+	}
+	delete json;
+	}
+	if(reply==NULL) {
+		json=pids->jsonify();
+		if (json!=NULL) {
+			reply=json->jstringify();
+			delete json;
+		}
+	}
+	return reply;
+}
+
+char *BrewLink::cmdNetwork(char *cmd){
+	char *reply;
+	JSONObj *json;
+	char *jsontxt=cmd;
+	jsontxt++;
+	if(*jsontxt!='\0') {
+		json=new JSONObj(jsontxt);
+		if (json!=NULL) {
+			piNet.setConfig(json);
+		}
+		delete json;
+	}
+	json=piNet.jsonify();
+	reply=json->jstringify();
+	delete json;
 	return reply;
 }

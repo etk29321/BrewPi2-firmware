@@ -4,22 +4,24 @@ SYSTEM_THREAD(ENABLED);
 
 //SerialDebugOutput debugOutput(38400, ALL_LEVEL); // use a faster baudrate and log only warnings or more severe
 
-#define FERM1SET 50
-#define FERM2SET 50
+#define FERM1SET 68
+#define FERM2SET 68
 #define GLYCOLSET 44
 
 BrewLink *bLink;
 DeviceManager *deviceManager;
 PIDs *pids;
 Connections *connections;
+Storage *storage;
+PiNet piNet;
 
-String hostname=String("brewpi.bakersapex.com");
-IPAddress syslogServer(192,168,8,20);
-Syslog syslog(hostname,syslogServer,514);
+//String hostname=String("brewpi.bakersapex.com");
+//IPAddress syslogServer(192,168,8,20);
+//Syslog syslog(hostname,syslogServer,514);
 
 unsigned long lastTime;
 unsigned long lastReportTime;
-unsigned long lastConnectAttempt;
+//unsigned long lastConnectAttempt;
 bool wifiFlap;
 
 void setup()
@@ -30,10 +32,15 @@ void setup()
 	SYSTEM_MODE(MANUAL);
     //load WIFI
 	delay(1000); // wait a sec to get serial term up and ready
-	wifiFlap=false;
-	lastConnectAttempt=millis();
+	//wifiFlap=false;
+	//lastConnectAttempt=millis();
 	lastReportTime=millis();
     bLink=new BrewLink();
+ 	pids=new PIDs();
+    connections=new Connections();
+    deviceManager=new DeviceManager();
+    storage=new Storage();
+    /*
 	//bLink->begin(); //start wifi server
     IPAddress myAddress(192,168,8,147);
     IPAddress netmask(255,255,255,0);
@@ -49,21 +56,48 @@ void setup()
  	while (millis()-lastConnectAttempt < 30000 && !WiFi.ready()) {
  		delay(100);
  	}
-	bLink->begin(); //start wifi server
-    bLink->printDebug("Welcome to BrewPi!  System booting...");
- 	pids=new PIDs();
-    connections=new Connections();
-    deviceManager=new DeviceManager();
+ 	*/
+    // dynamic settings and device autodiscovery
     char * reply=deviceManager->deviceSearch();  //autodiscover any attached devices
     free(reply);
+    reply=storage->read();
+    free(reply);
 
-    // get settings
+    //start communications
+    NetworkBlock *netconf=(NetworkBlock *)malloc(sizeof(NetworkBlock));
+    netconf->useDHCP=0;
+    netconf->ipAddress=0xC0A80893;
+    netconf->netmask=0xFFFFFF00;
+    netconf->gateway=0xC0A80801;
+    netconf->dnsServer=0xC0A80801;
+    String hostname=String("brewpi");
+    hostname.toCharArray(netconf->hostname,63);
+    //memcpy(&(netconf->hostname),"brewpi.bakersapex.com",strlen("brewpi.bakersapex.com"));
+    //char *hname=&(netconf->hostname);
+    //hname="brewpi.bakersapex.com";
+    netconf->enableSyslog=1;
+    netconf->syslogServer=0xC0A80814;
+    netconf->syslogPort=514;
+
+    piNet.setConfig(netconf);
+    //piNet.connect();
+	//bLink->begin(); //start wifi server
+    bLink->printDebug("Welcome to BrewPi!  System booting...");
+
+
+
+    // dynamic settings
+    //reply=storage->read();
+   // free(reply);
+
+    // hardcoded settings
+
     uint8_t ferm1set;
     uint8_t ferm2set;
     uint8_t glycolset;
-    ferm1set=EEPROM.read(0);
-    ferm2set=EEPROM.read(1);
-    glycolset=EEPROM.read(2);
+    //ferm1set=EEPROM.read(0);
+    //ferm2set=EEPROM.read(1);
+    //glycolset=EEPROM.read(2);
     if (ferm1set==0) {
     	ferm1set=FERM1SET;
     }
@@ -77,12 +111,15 @@ void setup()
     OneWireTempSensor *temp=(OneWireTempSensor *)deviceManager->getDevice("28fae0a006000001");
 	if(temp!=NULL) {temp->setName("Fermenter1");}
 	if(temp!=NULL) {temp->setStrName(String("Fermenter1"));}
+
     temp=(OneWireTempSensor *)deviceManager->getDevice("28e146a106000082");
-    if(temp!=NULL) {temp->setName("Fermenter2");}
-	if(temp!=NULL) {temp->setStrName(String("Fermenter2"));}
-	temp=(OneWireTempSensor *)deviceManager->getDevice("287ea2a20600005a");
-	if(temp!=NULL) {temp->setName("Glycol");}
+    if(temp!=NULL) {temp->setName("Glycol");}
 	if(temp!=NULL) {temp->setStrName(String("Glycol"));}
+
+	temp=(OneWireTempSensor *)deviceManager->getDevice("28b80504090000ea");
+	if(temp!=NULL) {temp->setName("Fermenter2");}
+	if(temp!=NULL) {temp->setStrName(String("Fermenter2"));}
+
     PID *temppid=pids->getPID("Fermenter1");
     OneWireGPIO *owgpio=(OneWireGPIO *)deviceManager->getDevice("3af51321000000cb0");
     if (owgpio!=NULL && temppid!=NULL) { //if this didnt work, get device or get pid failed
@@ -136,6 +173,7 @@ void setup()
     	connections->addConnection(conn);
     }
 
+
     lastTime=millis();
     bLink->printDebug("Setup completed!");
 
@@ -145,7 +183,7 @@ void setup()
 void loop(){
 	unsigned long time=millis();
 	bLink->receive();
-
+    piNet.processQueries();
 	if((time-lastTime)>2000) { //update PIDs once every 2 seconds
 		//uint32_t freemem = System.freeMemory();
 		//bLink->printDebug("free memory: %d Bytes",freemem);

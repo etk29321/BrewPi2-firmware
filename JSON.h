@@ -75,6 +75,7 @@ public:
 	~JSONElement();
 	char *getValue();
 	int getValueAsInt();
+	double getValueAsDouble();
 	JSONArray *getValueAsArray();
 	JSONObj *getValueAsObj();
 	char *getName();

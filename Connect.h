@@ -24,15 +24,21 @@ enum PIDState{
 
 class Connection{
 public:
-	Connection(class Device *outdev, char *exp);
-	Connection(class Device *outdev, Device *indev);
-	Connection(class Device *outdev, class PID *inpid,PIDState state);
+	Connection(class Device *outdev, char *exp); // Custom
+	Connection(class Device *outdev, Device *indev); //DevMode
+	Connection(class Device *outdev, class PID *inpid,PIDState state); //PIDCooling or PIDHeating
 	~Connection();
 	void update();
 	char *getName(); //output device name this connection goes to
 	JSONObj *jsonify();
 	Connection *next;
 	Connection *prev;
+	class Device *getOutDev();
+	class Device *getInDev();
+	class PID *getInPID();
+	ConnMode getMode();
+	char *getExp();
+	PIDState getPIDState();
 private:
 	bool eval(char *exp);
 	bool evalToken(char *exp);
@@ -57,6 +63,8 @@ public:
 	void delConnection(char *name); //Device name is the dev->getName() of the underlying device
 	void update();
 	Connection *getConnection(char *name); //Device name is the dev->getName() of the underlying device
+	Connection *getConnection(int connum); //get connection by index
+	int getNumConns();
 	JSONObj *jsonify();
 private:
 	Connection *root;

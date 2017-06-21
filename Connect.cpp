@@ -272,6 +272,33 @@ char *Connection::getName() {
 	return NULL;
 }
 
+
+class Device *Connection::getOutDev(){
+	return dev;
+}
+class Device *Connection::getInDev(){
+	return inputdev;
+}
+class PID *Connection::getInPID(){
+	return pid;
+}
+ConnMode Connection::getMode(){
+	return mode;
+}
+
+
+char *Connection::getExp(){
+	return expression;
+}
+PIDState Connection::getPIDState(){
+	if (mode==PIDHeating) {
+		return HEATING;
+	} else {
+		return COOLING;
+	}
+}
+
+
 JSONObj *Connection::jsonify(){
 	JSONObj *json=new JSONObj();
 	json->addElement("OutputDevice",dev->getName());
@@ -327,6 +354,7 @@ void Connections::addConnection(Connection *newconn){
             	delConnection(newconn->getName());
             	addConnection(newconn);
             }
+			connCount++;
 		}
 	}
 }
@@ -441,6 +469,22 @@ Connection *Connections::getConnection(char *name){ //device name is the dev->ge
 	}
 	return NULL; //not found
 }
+
+Connection *Connections::getConnection(int connum){
+	Connection *pos=root;
+	int i=0;
+	while(pos!=NULL && i<connum) {
+        pos=pos->next;
+        i++;
+	}
+	return pos;
+}
+
+int Connections::getNumConns(){
+	return connCount;
+}
+
+
 
 JSONObj *Connections::jsonify(){
 	JSONObj *json=new JSONObj();
