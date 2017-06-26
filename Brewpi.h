@@ -61,7 +61,7 @@ typedef struct NetworkBlock;
 #ifndef XCODE
 #include "application.h"
 typedef uint8_t DeviceAddress[8];
-#include "debugMalloc.h"
+//#include "debugMalloc.h"  //adds debug logging to troubleshoot issues running on brewpi
 #include "BrewLink.h"
 #endif
 
@@ -71,6 +71,7 @@ typedef uint8_t DeviceAddress[8];
 //#include "syslog.h"
 #include "modules/Networking/piNet.h"
 #include "Storage.h"
+#include "modules/Networking/ntp.h"
 
 void setup(void);
 void loop (void);

@@ -14,8 +14,14 @@ void Syslog::log(String msg){
 
 void Syslog::log(String msgtype, String msg){
     if (configured) {
-	String *packet = new String(msgtype + SP+ SYSLOG_VER + SP +NILVAL + SP + hname + SP + \
+    	//             1985-04-12T19:20:50.52-04:00
+    	//Time.setFormat("%Y-%m-%dT%T%z");
+	String *packet = new String(msgtype + SYSLOG_VER + SP + Time.format(Time.now(), "%Y-%m-%dT%T%z") + SP + hname + SP + \
 			               SYSLOG_APPNAME + SP + NILVAL + SP + NILVAL + SP + NILVAL + SP + msg);
+	//HEADER          = PRI VERSION SP TIMESTAMP SP HOSTNAME
+	//                        SP APP-NAME SP PROCID SP MSGID
+	//String *packet = new String(PRI + SP+ SYSLOG_VER + SP +TIMESTAMP + SP + hname + SP + \
+	//		               SYSLOG_APPNAME + SP + PROCID + SP + MSGID + SP + STRCUTURED_DATA + SP + msg);
 
 	packet->toCharArray(buf,480);
 	int pktsize=packet->length();

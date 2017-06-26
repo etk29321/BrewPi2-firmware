@@ -80,6 +80,8 @@ void setup()
     netconf->syslogPort=514;
 
     piNet.setConfig(netconf);
+    String ntpserver=String("pool.ntp.org");
+    ntpSync(ntpserver); //rsyslog on linux doesnt like syslog messages without valid timestamps
     //piNet.connect();
 	//bLink->begin(); //start wifi server
     bLink->printDebug("Welcome to BrewPi!  System booting...");
