@@ -31,14 +31,17 @@ private:
     IPAddress netmask;
     IPAddress gateway;
     IPAddress dnsServer;
+    String ntpServer; // 63-characters is the max length of a hostname in the mdns lib (label.h)
     String hostname; // 63-characters is the max length of a hostname in the mdns lib (label.h)
     bool enableSyslog;
     IPAddress syslogServer;
     uint16_t syslogPort;
+    bool connected;
 
 };
 
 IPAddress StringToIPAddress(char *str);
+uint32_t IPAddressToUint(IPAddress ipAddress);
 
 extern PiNet piNet;
 #endif

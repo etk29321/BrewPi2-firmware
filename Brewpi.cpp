@@ -64,7 +64,7 @@ void setup()
     free(reply);
 
     //start communications
-    NetworkBlock *netconf=(NetworkBlock *)malloc(sizeof(NetworkBlock));
+    /*NetworkBlock *netconf=(NetworkBlock *)malloc(sizeof(NetworkBlock));
     netconf->useDHCP=0;
     netconf->ipAddress=0xC0A80893;
     netconf->netmask=0xFFFFFF00;
@@ -72,28 +72,27 @@ void setup()
     netconf->dnsServer=0xC0A80801;
     String hostname=String("brewpi");
     hostname.toCharArray(netconf->hostname,63);
-    //memcpy(&(netconf->hostname),"brewpi.bakersapex.com",strlen("brewpi.bakersapex.com"));
-    //char *hname=&(netconf->hostname);
-    //hname="brewpi.bakersapex.com";
+    String ntpServer=String("pool.ntp.org");
+    ntpServer.toCharArray(netconf->ntpserver,63);
     netconf->enableSyslog=1;
     netconf->syslogServer=0xC0A80814;
     netconf->syslogPort=514;
 
-    piNet.setConfig(netconf);
-    String ntpserver=String("pool.ntp.org");
-    ntpSync(ntpserver); //rsyslog on linux doesnt like syslog messages without valid timestamps
-    //piNet.connect();
+    piNet.setConfig(netconf);*/
+    //String ntpserver=String("pool.ntp.org");
+    //ntpSync(ntpserver); //rsyslog on linux doesnt like syslog messages without valid timestamps
+    piNet.connect();
 	//bLink->begin(); //start wifi server
     bLink->printDebug("Welcome to BrewPi!  System booting...");
 
 
 
     // dynamic settings
-    //reply=storage->read();
+   // reply=storage->read();
    // free(reply);
 
     // hardcoded settings
-
+/*
     uint8_t ferm1set;
     uint8_t ferm2set;
     uint8_t glycolset;
@@ -174,7 +173,7 @@ void setup()
     	Connection *conn=new Connection((Device *)owgpio,temppid,COOLING);
     	connections->addConnection(conn);
     }
-
+*/
 
     lastTime=millis();
     bLink->printDebug("Setup completed!");

@@ -12,9 +12,13 @@ c{"Connections":[{"Add":{"OutputDevice":"GlycolFerm1","mode":3.00,"Expression":"
 
 
 # Production Devices
+i{"useDHCP":0.00,"ipAddress":"192.168.8.147","netmask":"255.255.255.0","gateway":"192.168.8.1","dnsServer":"192.168.8.1","ntpserver":"pool.ntp.org","hostname":"brewpi","enableSyslog":1.00,"syslogServer":"192.168.8.20","syslogPort":514.00}
+
+
 d{"Devices":[{"28fae0a006000001":{"Name":"Fermenter1","CorF":1}}]}
 d{"Devices":[{"28b80504090000ea":{"Name":"Fermenter2","CorF":1}}]}
 d{"Devices":[{"28e146a106000082":{"Name":"Glycol","CorF":1}}]}
+d{"Devices":[{"28a1da7f08000081":{"Name":"Garage","CorF":1}}]}
 d{"Devices":[{"3af51321000000cb0":{"Name":"GlycolFermenter1","gpioMode":1}}]}
 d{"Devices":[{"3a1b20210000003b0":{"Name":"GlycolFermenter2","gpioMode":1}}]}
 d{"Devices":[{"3a2d0e210000003e0":{"Name":"GlycolPump","gpioMode":1}}]}

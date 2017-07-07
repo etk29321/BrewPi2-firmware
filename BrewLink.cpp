@@ -38,7 +38,8 @@ String charToString(char *cstr){
 ***********************************************************************/
 BrewLink::BrewLink(){
 	Serial.begin(9600);
-	wifiserver = new TCPServer(8080);
+	//wifiserver = new TCPServer(8080);
+	wifiserver=NULL;
 	//clients=NULL;
 	serialBufPos=0;
 	//singleClientBufPos=0;
@@ -72,11 +73,32 @@ BrewLink::~BrewLink(){
 **
 ***********************************************************************/
 void BrewLink::begin(){
+	wifiserver = new TCPServer(8080);
 	wifiserver->begin();
 }
 
+template<typename C>
+bool makeDisconnected(C& connection)
+{
+	//unsigned int deltaTime = millis() - connection.lastHeard;
+	//if (deltaTime>TCPTIMEOUT) {
+		IPAddress clientIP = connection.client.remoteIP();
+		bLink->printDebug("Disconnecting client %d.%d.%d.%d. Exceeded timeout of %d seconds",clientIP[0],clientIP[1],clientIP[2],clientIP[3], TCPTIMEOUT);
+		connection.client.flush();
+		connection.client.stop();  //gracefully disconnect
+	//}
+	return !connection.client.connected();
+}
+
 void BrewLink::stop(){
-	wifiserver->stop();
+    clients.erase(std::remove_if(clients.begin(), clients.end(), makeDisconnected<struct BrewLinkClient>), clients.end());
+	bLink->printDebug("stopping wifiserver(%x)",wifiserver);
+	delay(1000);
+    wifiserver->stop();
+	bLink->printDebug("wifiserver stopped");
+	delay(1000);
+	delete wifiserver;
+	wifiserver=NULL;
 }
 
 
@@ -92,6 +114,8 @@ bool isDisconnected(C& connection)
 	}
 	return !connection.client.connected();
 }
+
+
 
 /***********************************************************************
 **
@@ -148,7 +172,7 @@ void BrewLink::receive(){
 	}
 	*/
 
-
+	if (wifiserver) { // only process wifi clients if wifi server is active.
 	// check for new clients
 	struct BrewLinkClient bpiclient;
 	bpiclient.client = wifiserver->available();
@@ -167,7 +191,7 @@ void BrewLink::receive(){
 	for(std::vector<BrewLinkClient>::size_type i = 0; i != clients.size(); i++) {
 		receiveTCPClient(&clients[i]);
 	}
-
+	}
 
 }
 
@@ -289,7 +313,12 @@ char *BrewLink::processCmd(char *cmd) {
 		break;
 	case 'e':
 		reply=NULL;
-		storage->dump();
+		cmd++;
+		if (*cmd=='c') {
+			storage->clear();
+		} else {
+			storage->dump();
+		}
 		break;
 	case 'x':
 	case 'f':

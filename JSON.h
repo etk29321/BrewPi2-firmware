@@ -16,7 +16,6 @@ class JSONArrayElement;
 class JSONObj;
 class JSONElement;
 
-#include "debugMalloc.h"
 
 class JSONArrayElement{
 public:
