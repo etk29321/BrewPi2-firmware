@@ -3,6 +3,11 @@
 
 
 PiNet::PiNet() {
+    useDHCP=1;
+    ntpServer=String("pool.ntp.org"); // 63-characters is the max length of a hostname in the mdns lib (label.h)
+    hostname=String("brewpi"); // 63-characters is the max length of a hostname in the mdns lib (label.h)
+    enableSyslog=0;
+	connected=false;
 	return;
 }
 
@@ -40,7 +45,9 @@ bool PiNet::connect() {
         if(success){
         	bLink->printDebug("mDNS: begun");
         }
+        ntpSync(ntpServer); //rsyslog on linux doesnt like syslog messages without valid timestamps
     }
+    connected=true;
     return WiFi.ready();
 }
 
@@ -50,6 +57,7 @@ bool PiNet::disconnect() {
     mdns.stop();
     bLink->printDebug("stopping bLink TCP");
     bLink->stop();
+    connected=false;
     return true;
 }
 
@@ -93,6 +101,11 @@ bool PiNet::setConfig(NetworkBlock *config){
         } else {
             hostname=System.deviceID();
         }
+        if(config->ntpserver[0]!='\0') {
+        	ntpServer=String(config->ntpserver);
+        } else {
+        	ntpServer=String("");
+        }
         enableSyslog=config->enableSyslog;
         syslogServer=IPAddress(config->syslogServer);
         syslogPort=config->syslogPort;
@@ -101,8 +114,8 @@ bool PiNet::setConfig(NetworkBlock *config){
         hostname=System.deviceID();
         enableSyslog=false;
     }
-    disconnect();
-    connect();
+    //disconnect();
+    //connect();
     return ok;
 }
 
@@ -111,14 +124,17 @@ NetworkBlock *PiNet::getConfig(){
 	NetworkBlock *config;
 	config=(NetworkBlock *)malloc(sizeof(NetworkBlock));
     config->useDHCP=useDHCP;
-    config->ipAddress=(ipAddress[3]>>24) + (ipAddress[2]>>16) + (ipAddress[1]>>8) + ipAddress[0];
-    config->netmask=(netmask[3]>>24) + (netmask[2]>>16)+ (netmask[1]>>8) + netmask[0];
-    config->gateway=(gateway[3]>>24) + (gateway[2]>>16) + (gateway[1]>>8) + gateway[0];
-    config->dnsServer=(dnsServer[3]>>24) + (dnsServer[2]>>16) + (dnsServer[1]>>8) + dnsServer[0];
+    config->ipAddress=IPAddressToUint(ipAddress);
+    bLink->printDebug("%d.%d.%d.%d = %x",ipAddress[0],ipAddress[1],ipAddress[2],ipAddress[3],config->ipAddress);
+    config->netmask=IPAddressToUint(netmask);
+    config->gateway=IPAddressToUint(gateway);
+    config->dnsServer=IPAddressToUint(dnsServer);
+    ntpServer.toCharArray(config->ntpserver,63);
     hostname.toCharArray(config->hostname,63);
     config->enableSyslog=enableSyslog;
-    config->syslogServer=(syslogServer[3]>>24) + (syslogServer[2]>>16) + (syslogServer[1]>>8) + syslogServer[0];
+    config->syslogServer=IPAddressToUint(syslogServer);
     config->syslogPort=syslogPort;
+    return config;
 }
 
 JSONObj *PiNet::jsonify(){
@@ -134,6 +150,9 @@ JSONObj *PiNet::jsonify(){
 	json->addElement("gateway",buf);
 	sprintf(buf,"%d.%d.%d.%d",dnsServer[0],dnsServer[1],dnsServer[2],dnsServer[3]);
 	json->addElement("dnsServer",buf);
+	char ntpsvr[64];
+	ntpServer.toCharArray(ntpsvr,63);
+	json->addElement("ntpserver",ntpsvr);
 	char hname[64];
 	hostname.toCharArray(hname,63);
 	json->addElement("hostname",hname);
@@ -199,8 +218,8 @@ bool PiNet::setConfig(JSONObj *json){
         hostname=System.deviceID();
         enableSyslog=false;
     }
-    disconnect();
-    connect();
+    //disconnect();
+    //connect();
     return ok;
 }
 
@@ -323,5 +342,9 @@ IPAddress StringToIPAddress(char *str){
 
 	}
 	return IPAddress(ip[0],ip[1],ip[2],ip[3]);
+}
+
+uint32_t IPAddressToUint(IPAddress ipAddress){
+    return (ipAddress[0]<<24) + (ipAddress[1]<<16) + (ipAddress[2]<<8) + ipAddress[3];
 }
 

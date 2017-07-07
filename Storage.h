@@ -138,6 +138,7 @@ typedef struct NetworkBlock {
     uint32_t gateway;
     uint32_t dnsServer;
     char hostname[64]; // 63-characters is the max length of a hostname in the mdns lib (label.h)
+    char ntpserver[64]; // 63-characters is the max length of a hostname in the mdns lib (label.h)
     uint8_t enableSyslog;
     uint32_t syslogServer;
     uint16_t syslogPort;

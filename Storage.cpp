@@ -255,9 +255,13 @@ char *Storage::write() {
 	strPos=sizeof(fstable) + sizeof(NetworkBlock) + sizeof(deventity)*fs.devCount + sizeof(pidentity)*fs.pidCount + sizeof(connentity)*fs.connCount+1;
 	pos=0;
 	//write fstable
+	bLink->printDebug("Writing fstable stating at %d",pos);
+
 	EEPROM.put(pos,fs);
 	pos+=sizeof(fstable);
 	//write network config
+	bLink->printDebug("Writing networkBlock stating at %d",pos);
+
 	EEPROM.put(pos,*netconfig);
 	pos+=sizeof(NetworkBlock);
 	free(netconfig);
